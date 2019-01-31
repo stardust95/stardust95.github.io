@@ -1,0 +1,1174 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-CN">
+<head><meta name="generator" content="Hexo 3.8.0">
+  <!-- hexo-inject:begin --><!-- hexo-inject:end --><meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css">
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css">
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="Middleware,Apache Kafka,">
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="Consumer源码解析Consumer网络模型 consumer poll解析Consumer poll 方法的真正实现是在 pollOnce() 方法中，这里直接看下其源码：     def _poll_once(self, timeout_ms, max_records):         &amp;quot;&amp;quot;&amp;quot;Do one round of polling. In addit">
+<meta name="keywords" content="Middleware,Apache Kafka">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Kafka-python源码学习笔记">
+<meta property="og:url" content="https://stardust-blog.cn/笔记/kafka-python源码学习笔记/index.html">
+<meta property="og:site_name" content="Stardust&#39;s Blog">
+<meta property="og:description" content="Consumer源码解析Consumer网络模型 consumer poll解析Consumer poll 方法的真正实现是在 pollOnce() 方法中，这里直接看下其源码：     def _poll_once(self, timeout_ms, max_records):         &amp;quot;&amp;quot;&amp;quot;Do one round of polling. In addit">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="https://stardust-blog.cn/笔记/kafka-python源码学习笔记/consumer_network.png">
+<meta property="og:image" content="https://stardust-blog.cn/笔记/kafka-python源码学习笔记/join_group.png">
+<meta property="og:image" content="https://stardust-blog.cn/笔记/kafka-python源码学习笔记/group状态变化图.png">
+<meta property="og:image" content="https://stardust-blog.cn/笔记/kafka-python源码学习笔记/pollonce_only总体流程.png">
+<meta property="og:updated_time" content="2019-01-31T02:14:07.555Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Kafka-python源码学习笔记">
+<meta name="twitter:description" content="Consumer源码解析Consumer网络模型 consumer poll解析Consumer poll 方法的真正实现是在 pollOnce() 方法中，这里直接看下其源码：     def _poll_once(self, timeout_ms, max_records):         &amp;quot;&amp;quot;&amp;quot;Do one round of polling. In addit">
+<meta name="twitter:image" content="https://stardust-blog.cn/笔记/kafka-python源码学习笔记/consumer_network.png">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="https://stardust-blog.cn/笔记/kafka-python源码学习笔记/">
+
+
+
+
+
+  <title>Kafka-python源码学习笔记 | Stardust's Blog</title><!-- hexo-inject:begin --><!-- hexo-inject:end -->
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope="" itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <!-- hexo-inject:begin --><!-- hexo-inject:end --><div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope="" itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Stardust's Blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">Live in thinking</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br>
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br>
+            
+            Archives
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://stardust-blog.cn/笔记/kafka-python源码学习笔记/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Stardust">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Stardust's Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">Kafka-python源码学习笔记</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2018-11-30T15:58:58+08:00">
+                2018-11-30
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/笔记/" itemprop="url" rel="index">
+                    <span itemprop="name">笔记</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h1 id="Consumer源码解析"><a href="#Consumer源码解析" class="headerlink" title="Consumer源码解析"></a>Consumer源码解析</h1><h2 id="Consumer网络模型"><a href="#Consumer网络模型" class="headerlink" title="Consumer网络模型"></a>Consumer网络模型</h2><img src="/笔记/kafka-python源码学习笔记/consumer_network.png">
+<h2 id="consumer-poll解析"><a href="#consumer-poll解析" class="headerlink" title="consumer poll解析"></a>consumer poll解析</h2><p>Consumer poll 方法的真正实现是在 <code>pollOnce()</code> 方法中，这里直接看下其源码：</p>
+<pre><code class="lang-python">    def _poll_once(self, timeout_ms, max_records):
+        &quot;&quot;&quot;Do one round of polling. In addition to checking for new data, this does
+        any needed heart-beating, auto-commits, and offset updates.
+
+        Arguments:
+            timeout_ms (int): The maximum time in milliseconds to block.
+
+        Returns:
+            dict: Map of topic to list of records (may be empty).
+        &quot;&quot;&quot;
+        # step1 获取GroupCoordinator并连接、加入、Sync Group，期间Group会进行rebalance并获取其订阅的的partition
+        self._coordinator.poll()
+
+        # Fetch positions if we have partitions we&#39;re subscribed to that we
+        # don&#39;t know the offset for
+        # step2 （如果某个partition的offset不合法的话）更新要拉取的各个partition的offset
+        if not self._subscription.has_all_fetch_positions():
+            self._update_fetch_positions(self._subscription.missing_fetch_positions())
+
+        # If data is available already, e.g. from a previous network client
+        # poll() call to commit, then just return it immediately
+        # step3 获取fetcher已经拉取到（fetched）的记录
+        records, partial = self._fetcher.fetched_records(max_records)       # partial: fetchResponse返回的部分记录
+        if records:
+            # Before returning the fetched records, we can send off the
+            # next round of fetches and avoid block waiting for their
+            # responses to enable pipelining while the user is handling the
+            # fetched records.
+            if not partial:                               # 如果这次已经取出了fetchResponse中的所有记录，则先发下一个fetchRequest再返回
+                self._fetcher.send_fetches()
+            return records
+
+        # Send any new fetches (won&#39;t resend pending fetches)
+        # step4：到这里说明上次fetch到的记录已经全部返回了，需要再次向订阅的所有partition发送fetch请求，从多个partition拉取新的记录
+        # 注：只是将请求加入请求队列，并未实际发送
+        self._fetcher.send_fetches()
+
+        timeout_ms = min(timeout_ms, self._coordinator.time_to_next_poll() * 1000)
+
+        # step5 调用client的poll方法发送请求队列中的请求和接收回包
+        self._client.poll(timeout_ms=timeout_ms)
+        # after the long poll, we should check whether the group needs to rebalance
+        # prior to returning data so that the group can stabilize faster
+        # step6 如果group需要rebalance，直接返回空数据，以便更快地让group进入稳定状态（MemberState.STABLE）
+        if self._coordinator.need_rejoin():
+            return {}
+
+        records, _ = self._fetcher.fetched_records(max_records)
+        return records
+</code></pre>
+<p>在这里，我们把一个 pollOnce 模型分为6个部分，这里简单介绍一下：</p>
+<ol>
+<li>连接 GroupCoordinator，并发送 join-group、sync-group 请求，加入 group 成功，并获取其分配的 tp 列表；</li>
+<li>更新这些分配的 tp 列表的 the last committed offset（没有的话，根据其设置进行获取 offset）；</li>
+<li>调用 Fetcher 获取拉取的数据，如果有数据，立马返回，没有的话就进行下面的操作；</li>
+<li>调用 Fetcher 发送 fetch 请求（只是加入队列，并未真正发送）；</li>
+<li>调用 poll() 方法发送请求；</li>
+<li>如果 group 之前是需要 rebalacne 的，直接返回空集合，这样可以便于 group 尽快达到一个稳定的状态。</li>
+</ol>
+<p>一个 Consumer 实例消费数据的前提是能够加入一个 group 成功，并获取其要订阅的 tp（topic-partition）列表，这都是在第一步中完成的，如果这个 group 是一个新的 group，那么 group 的状态将会由 Empty –&gt; PreparingRebalance –&gt; AwaitSync –&gt; Stable 的变化过程，下面将会详细介绍。</p>
+<h3 id="Consumer-join-group-过程"><a href="#Consumer-join-group-过程" class="headerlink" title="Consumer join-group 过程"></a>Consumer join-group 过程</h3><h4 id="整体流程"><a href="#整体流程" class="headerlink" title="整体流程"></a>整体流程</h4><img src="/笔记/kafka-python源码学习笔记/join_group.png">
+<h4 id="Consumer-Group状态变化流："><a href="#Consumer-Group状态变化流：" class="headerlink" title="Consumer Group状态变化流："></a>Consumer Group状态变化流：</h4><img src="/笔记/kafka-python源码学习笔记/group状态变化图.png">
+<h4 id="Group成员的状态定义"><a href="#Group成员的状态定义" class="headerlink" title="Group成员的状态定义"></a>Group成员的状态定义</h4><pre><code class="lang-python">class MemberState(object):
+    UNJOINED = &#39;&lt;unjoined&gt;&#39;  # the client is not part of a group
+    REBALANCING = &#39;&lt;rebalancing&gt;&#39;  # the client has begun rebalancing
+    STABLE = &#39;&lt;stable&gt;&#39;  # the client has joined and is sending heartbeats
+</code></pre>
+<h4 id="ConsumerCoordinator-pool"><a href="#ConsumerCoordinator-pool" class="headerlink" title="ConsumerCoordinator.pool()"></a>ConsumerCoordinator.pool()</h4><pre><code class="lang-python">    def poll(self):
+        &quot;&quot;&quot;
+        Poll for coordinator events. Only applicable if group_id is set, and
+        broker version supports GroupCoordinators. This ensures that the
+        coordinator is known, and if using automatic partition assignment,
+        ensures that the consumer has joined the group. This also handles
+        periodic offset commits if they are enabled.
+        本函数调用后可保证Coordinator是已知的，且在使用自动partition分配时保证consumer已经加入了这个group。
+        同时也用于进行周期性的offset提交（打开该特性时）
+        &quot;&quot;&quot;
+        if self.group_id is None or self.config[&#39;api_version&#39;] &lt; (0, 8, 2):
+            return
+
+        self._invoke_completed_offset_commit_callbacks()
+        # step1 获取GroupCoordinator地址，并建立连接
+        self.ensure_coordinator_ready()
+
+        if self.config[&#39;api_version&#39;] &gt;= (0, 9) and self._subscription.partitions_auto_assigned():  
+        # step2 判断是否需要重新加入group（如果订阅的partitoni变化，或分配的partition变化？？时需要rejoin）
+            if self.need_rejoin():
+                # due to a race condition between the initial metadata fetch and the
+                # initial rebalance, we need to ensure that the metadata is fresh
+                # before joining initially, and then request the metadata update. If
+                # metadata update arrives while the rebalance is still pending (for
+                # example, when the join group is still inflight), then we will lose
+                # track of the fact that we need to rebalance again to reflect the
+                # change to the topic subscription. Without ensuring that the
+                # metadata is fresh, any metadata update that changes the topic
+                # subscriptions and arrives while a rebalance is in progress will
+                # essentially be ignored. See KAFKA-3949 for the complete
+                # description of the problem.
+                if self._subscription.subscribed_pattern:
+                    metadata_update = self._client.cluster.request_update()
+                    self._client.poll(future=metadata_update)
+                # 确保group是active状态的；加入group；**并分配订阅的partition**
+                self.ensure_active_group()
+            # step3 检查心跳*线程*是否正常；如果心跳*线程*失败则抛出异常，否则更新poll的调用时间
+            self.poll_heartbeat()
+        # step4 设置了自动commit时，当定时到达时进行自动commit
+        self._maybe_auto_commit_offsets_async()
+</code></pre>
+<p>在 poll 方法中，具体实现，可以分为以下三步：</p>
+<p>通过 subscribe() 方法订阅 topic, 并且 coordinator 未知，就初始化 Consumer Coordinator（在 ensureCoordinatorReady() 中实现，主要的作用是发送 GroupCoordinator 请求，并建立连接）；<br>判断是否需要重新加入 group，如果订阅的 partition 变化或则分配的 partition 变化时，需要 rejoin，通过 ensureActiveGroup() 发送 join-group、sync-group 请求，加入 group 并获取其 assign 的 tp list；<br>检测心跳线程运行是否正常（需要定时向 GroupCoordinator 发送心跳线程，长时间未发送的话 group就会认为该实例已经挂了）；<br>如果设置的是自动 commit，如果定时达到自动 commit。<br>这其中，有两个地方需要详细介绍，那就是第一步中的 ensureCoordinatorReady() 方法和第二步中的 ensureActiveGroup() 方法。</p>
+<h4 id="ConsumerCoordinator-ensure-coordinator-ready"><a href="#ConsumerCoordinator-ensure-coordinator-ready" class="headerlink" title="ConsumerCoordinator.ensure_coordinator_ready()"></a>ConsumerCoordinator.ensure_coordinator_ready()</h4><p>作用是选择一个负载（连接数）最小的broker，发送GroupCoordinator请求，并建立相应的TCP连接。<br>主要流程：<br>    ensure_coordinator_ready() –&gt; lookup_coordinator() –&gt; _send_group_coordinator_request()。</p>
+<h4 id="ConsumerCoordinator-ensure-active-group"><a href="#ConsumerCoordinator-ensure-active-group" class="headerlink" title="ConsumerCoordinator.ensure_active_group()"></a>ConsumerCoordinator.ensure_active_group()</h4><p>作用是向已连接的GroupCoordinator发送 join-group、sync-grou请求，并获取分配的partition list<br>主要流程：<br>    ensure_active_group() –&gt; ensure_coordinator_ready() –&gt; _start_heartbeat_thread() –&gt;  _send_join_group_request() -&gt; _handle_join_success() -&gt; _on_join_complete()</p>
+<h4 id="ConsumerCoordinator-on-join-complete"><a href="#ConsumerCoordinator-on-join-complete" class="headerlink" title="ConsumerCoordinator.on_join_complete()"></a>ConsumerCoordinator.on_join_complete()</h4><p>作用：更新订阅的partition列表，更新对应的metadata，触发用户注册的listener。调用此函数时，一个consumer实例才算真正意义上加入了一个Consumer Group。</p>
+<pre><code class="lang-python">
+    def _on_join_complete(self, generation, member_id, protocol,
+                          member_assignment_bytes):
+        # only the leader is responsible for monitoring for metadata changes
+        # (i.e. partition changes)
+        if not self._is_leader:
+            self._assignment_snapshot = None
+
+        assignor = self._lookup_assignor(protocol)
+        assert assignor, &#39;Coordinator selected invalid assignment protocol: %s&#39; % protocol
+
+        assignment = ConsumerProtocol.ASSIGNMENT.decode(member_assignment_bytes)
+
+        # set the flag to refresh last committed offsets
+        self._subscription.needs_fetch_committed_offsets = True
+
+        # update partition assignment
+        self._subscription.assign_from_subscribed(assignment.partitions())
+
+        # give the assignor a chance to update internal state
+        # based on the received assignment
+        assignor.on_assignment(assignment)
+
+        # reschedule the auto commit starting from now
+        self.next_auto_commit_deadline = time.time() + self.auto_commit_interval
+
+        assigned = set(self._subscription.assigned_partitions())
+        log.info(&quot;Setting newly assigned partitions %s for group %s&quot;,
+                 assigned, self.group_id)
+
+        # execute the user&#39;s callback after rebalance
+        if self._subscription.listener:
+            try:
+                self._subscription.listener.on_partitions_assigned(assigned)
+            except Exception:
+                log.exception(&quot;User provided listener %s for group %s&quot;
+                              &quot; failed on partition assignment: %s&quot;,
+                              self._subscription.listener, self.group_id,
+                              assigned)
+</code></pre>
+<h3 id="Consumer-poll模型综述"><a href="#Consumer-poll模型综述" class="headerlink" title="Consumer poll模型综述"></a>Consumer poll模型综述</h3><p>当一个 consumer 对象创建之后，只有 poll 方法调用时，consumer 才会真正去连接 kafka 集群，进行相关的操作，其 poll 方法具体实现如下：</p>
+<pre><code class="lang-python">    def poll(self, timeout_ms=0, max_records=None):
+        &quot;&quot;&quot;Fetch data from assigned topics / partitions.
+
+        Records are fetched and returned in batches by topic-partition.
+        On each poll, consumer will try to use the last consumed offset as the
+        starting offset and fetch sequentially. The last consumed offset can be
+        manually set through :meth:`~kafka.KafkaConsumer.seek` or automatically
+        set as the last committed offset for the subscribed list of partitions.
+
+        Incompatible with iterator interface -- use one or the other, not both.
+
+        Arguments:
+            timeout_ms (int, optional): Milliseconds spent waiting in poll if
+                data is not available in the buffer. If 0, returns immediately
+                with any records that are available currently in the buffer,
+                else returns empty. Must not be negative. Default: 0
+            max_records (int, optional): The maximum number of records returned
+                in a single call to :meth:`~kafka.KafkaConsumer.poll`.
+                Default: Inherit value from max_poll_records.
+
+        Returns:
+            dict: Topic to list of records since the last fetch for the
+                subscribed list of topics and partitions.
+        &quot;&quot;&quot;
+        assert timeout_ms &gt;= 0, &#39;Timeout must not be negative&#39;
+        if max_records is None:
+            max_records = self.config[&#39;max_poll_records&#39;]
+        assert isinstance(max_records, int), &#39;max_records must be an integer&#39;
+        assert max_records &gt; 0, &#39;max_records must be positive&#39;
+
+        # Poll for new data until the timeout expires
+        start = time.time()
+        remaining = timeout_ms
+        while True:
+            records = self._poll_once(remaining, max_records)
+            if records:
+                return records
+
+            elapsed_ms = (time.time() - start) * 1000
+            remaining = timeout_ms - elapsed_ms
+
+            if remaining &lt;= 0:
+                return {}
+</code></pre>
+<p>如前所述，Consumer.poll()方法主要调用了_poll_once方法。<br>poll_once方法的主要流程如下：</p>
+<ol>
+<li>coordinator.poll()：获取 GroupCoordinator 的地址，并建立相应 tcp 连接，发送 join-group、sync-group，之后才真正加入到了一个 group 中，并获取其要消费的 topic-partition 列表，如果设置了自动 commit，也会在这一步进行 commit，具体见上文。总之，对于一个新建的 group，group 状态将会从 Empty –&gt; PreparingRebalance –&gt; AwaiSync –&gt; Stable；</li>
+<li>updateFetchPositions()： 在上一步中已经获取到了这个 consumer 实例要订阅的 topic-partition list，这一步更新其 fetch-position offset，以便进行拉取；</li>
+<li>fetcher.send_fetches()：返回其 fetched records，并更新其 fetch-position offset，只有在 offset-commit 时（自动 commit 时，是在第一步实现的），才会更新其 committed offset；</li>
+<li>fetcher.send_fetches()：只要订阅的 topic-partition list 没有未处理的 fetch 请求，就发送对这个 topic-partition 的 fetch 请求，在真正发送时，还是会按 node 级别去发送，leader 是同一个 node 的 topic-partition 会合成一个请求去发送；</li>
+<li>client.poll()：调用底层 NetworkClient 提供的接口去发送相应的请求；</li>
+<li>coordinator.need_rejoin()：如果当前实例分配的 topic-partition 列表发送了变化，那么这个 consumer group 就需要进行 rebalance。</li>
+</ol>
+<p>poll_once的总体流程图如下：</p>
+<img src="/笔记/kafka-python源码学习笔记/pollonce_only总体流程.png">
+<p>下面分别来看一下其中的几个主要函数:</p>
+<h4 id="coordinator-poll"><a href="#coordinator-poll" class="headerlink" title="coordinator.poll()"></a>coordinator.poll()</h4><p>该函数在前文中已经详细分析过，一个 consumer 实例在这一步实现的内容是：</p>
+<ol>
+<li>获取 GroupCoordinator 的地址，并建立相应 tcp 连接；</li>
+<li>发送 join-group 请求，然后 group 将会进行 rebalance；</li>
+<li>发送 sync-group 请求，之后才正在加入到了一个 group 中，这时会通过请求获取其要消费的 topic-partition 列表；</li>
+<li>如果设置了自动 commit，也会在这一步进行 commit offset。</li>
+</ol>
+<h4 id="consumer-update-fetch-positions"><a href="#consumer-update-fetch-positions" class="headerlink" title="consumer.update_fetch_positions()"></a>consumer.update_fetch_positions()</h4><p>这个方法主要是用来更新这个 consumer 实例订阅的 topic-partition 列表的 fetch-offset 信息。在 Fetcher 中，这个 consumer 实例订阅的每个 topic-partition 都会有一个对应的 TopicPartitionState 对象，在这个对象中会记录以下这些内容：</p>
+<pre><code class="lang-python">class TopicPartitionState(object):
+    def __init__(self):
+        self.committed = None # last committed position
+        self.has_valid_position = False # whether we have valid position
+        self.paused = False # whether this partition has been paused by the user
+        self.awaiting_reset = False # whether we are awaiting reset
+        self.reset_strategy = None # the reset strategy if awaitingReset is set
+        self._position = None # offset exposed to the user
+        self.highwater = None
+        self.drop_pending_message_set = False
+</code></pre>
+<p>其中需要关注的几个属性是：</p>
+<ul>
+<li>position：Fetcher 下次去拉取时的 offset，Fecher 在拉取时需要知道这个值；</li>
+<li>committed：consumer 已经处理完的最新一条消息的 offset，consumer 主动调用 offset-commit 时会更新这个值；</li>
+<li>resetStrategy：这 topic-partition offset 重置的策略，重置之后，这个策略就会改为 null，防止再次操作。</li>
+</ul>
+<p>update_fetch_positions() 这个方法的目的就是为了获取其订阅的每个 topic-partition 对应的 position，这样 Fetcher 才知道从哪个 offset 开始去拉取这个 topic-partition 的数据。</p>
+<h4 id="fetcher-send-fetches"><a href="#fetcher-send-fetches" class="headerlink" title="fetcher.send_fetches()"></a>fetcher.send_fetches()</h4><p>这个虽然是 pollOnce 的第四步，但我们这里放在第三步来讲，因为<strong>只有在发送 fetch 请求后，才能调用 fetcher.fetchedRecords() 获取到其拉取的数据</strong>，所以这里先介绍这个方法，其具体实现如下：</p>
+<pre><code class="lang-python">def send_fetches(self):
+    &quot;&quot;&quot;Send FetchRequests for all assigned partitions that do not already have
+    an in-flight fetch or pending fetch data.
+
+    Returns:
+        List of Futures: each future resolves to a FetchResponse
+    &quot;&quot;&quot;
+    futures = []
+    for node_id, request in six.iteritems(self._create_fetch_requests()):
+        if self._client.ready(node_id):
+            log.debug(&quot;Sending FetchRequest to node %s&quot;, node_id)
+            future = self._client.send(node_id, request)
+            future.add_callback(self._handle_fetch_response, request, time.time())
+            future.add_errback(log.error, &#39;Fetch to node %s failed: %s&#39;, node_id)
+            futures.append(future)
+    self._fetch_futures.extend(futures)
+    self._clean_done_fetch_futures()
+    return futures
+</code></pre>
+<p>在发送的 fetch 的过程中，总共分为以下两步：</p>
+<ol>
+<li>create_fetch_requests()：为订阅的所有 topic-partition list 创建 fetch 请求（只要该topic-partition 没有还在处理的请求），创建的 fetch 请求依然是按照 node 级别创建的；</li>
+<li>client.send()：发送 fetch 请求，并设置相应的 Listener，请求处理成功的话，就加入到 completedFetches 中，在加入这个 completedFetches 集合时，是按照 topic-partition 级别去加入，这样也就方便了后续的处理。</li>
+</ol>
+<p>从这里可以看出，在每次发送 fetch 请求时，都会向所有可发送的 topic-partition 发送 fetch 请求，调用一次 fetcher.sendFetches，拉取到的数据，可需要多次 pollOnce 循环才能处理完，因为 <strong>Fetcher 线程是在后台运行</strong>，这也保证了尽可能少地阻塞用户的处理线程，因为如果 Fetcher 中没有可处理的数据，用户的线程是会阻塞在 poll 方法中的。</p>
+<h4 id="fetcher-fetched-records"><a href="#fetcher-fetched-records" class="headerlink" title="fetcher.fetched_records()"></a>fetcher.fetched_records()</h4><p>返回之前获取到的record，并更新offset</p>
+<pre><code class="lang-python">    def fetched_records(self, max_records=None):
+        &quot;&quot;&quot;Returns previously fetched records and updates consumed offsets.
+
+        Arguments:
+            max_records (int): Maximum number of records returned. Defaults
+                to max_poll_records configuration.
+
+        Raises:
+            OffsetOutOfRangeError: if no subscription offset_reset_strategy
+            CorruptRecordException: if message crc validation fails (check_crcs
+                must be set to True)
+            RecordTooLargeError: if a message is larger than the currently
+                configured max_partition_fetch_bytes
+            TopicAuthorizationError: if consumer is not authorized to fetch
+                messages from the topic
+
+        Returns: (records (dict), partial (bool))
+            records: {TopicPartition: [messages]}
+            partial: True if records returned did not fully drain any pending
+                partition requests. This may be useful for choosing when to
+                pipeline additional fetch requests.
+        &quot;&quot;&quot;
+        if max_records is None:
+            max_records = self.config[&#39;max_poll_records&#39;]
+        assert max_records &gt; 0
+
+        drained = collections.defaultdict(list)
+        records_remaining = max_records
+
+        while records_remaining &gt; 0:
+            if not self._next_partition_records:
+                # 如果fetch未完成则退出循环
+                if not self._completed_fetches:
+                    break
+                completion = self._completed_fetches.popleft()
+                self._next_partition_records = self._parse_fetched_data(completion)
+            else:
+                records_remaining -= self._append(drained,
+                                                  self._next_partition_records,
+                                                  records_remaining)
+        return dict(drained), bool(self._completed_fetches)
+</code></pre>
+<p>consumer 的 Fetcher 处理从 server 获取的 fetch response 大致分为以下几个过程：</p>
+<ol>
+<li>通过 <code>completed_fetches.popleft()</code> 获取已经成功的 fetch response（在 sendFetches() 方法中会把成功的结果放在这个集合中，是拆分为 topic-partition 的粒度放进去的）；</li>
+<li><code>parse_fetched_data()</code> 处理上面获取的 completedFetch，构造成 PartitionRecords 类型；</li>
+<li>通过 <code>append(drained, next_partition_records, records_remaining)</code> 方法处理 PartitionRecords 对象，在这个里面会去验证 fetchOffset 是否能对得上，只有 fetchOffset 是一致的情况下才会去处理相应的数据，并更新 the fetch offset 的信息，如果 fetchOffset 不一致，这里就不会处理，the fetch offset 就不会更新，下次 fetch 请求时是会接着 the fetch offset 的位置去请求相应的数据。</li>
+<li>返回相应的 Records 数据。</li>
+</ol>
+<h2 id="consumer-message-generator"><a href="#consumer-message-generator" class="headerlink" title="consumer message generator"></a>consumer message generator</h2><pre><code class="lang-python">
+    def _message_generator(self):
+        assert self.assignment() or self.subscription() is not None, &#39;No topic subscription or manual partition assignment&#39;
+        while time.time() &lt; self._consumer_timeout:
+            # 确保Coordinator是已知的，且在使用自动partition分配时保证consumer已经加入了这个group。
+            self._coordinator.poll()
+
+            # 对齐各个partition的offset
+            # Fetch offsets for any subscribed partitions that we arent tracking yet
+            if not self._subscription.has_all_fetch_positions():
+                partitions = self._subscription.missing_fetch_positions()
+                self._update_fetch_positions(partitions)
+
+            poll_ms = 1000 * (self._consumer_timeout - time.time())
+            if not self._fetcher.in_flight_fetches():
+                poll_ms = min(poll_ms, self.config[&#39;reconnect_backoff_ms&#39;])
+            # 调用client的poll方法发送请求队列中的请求，并接收回包
+            self._client.poll(timeout_ms=poll_ms)
+
+            # after the long poll, we should check whether the group needs to rebalance
+            # prior to returning data so that the group can stabilize faster
+            # 先判断group是否需要rebalance再返回数据，以便更快地让group进入稳定状态（MemberState.STABLE）
+            if self._coordinator.need_rejoin():
+                continue
+
+            # We need to make sure we at least keep up with scheduled tasks,
+            # like heartbeats, auto-commits, and metadata refreshes
+            # 获取**下一次检查周期性任务的时间**（超时时间），如heart beat, auto commit和元数据更新是否按期执行
+            timeout_at = self._next_timeout()
+
+            # Because the consumer client poll does not sleep unless blocking on
+            # network IO, we need to explicitly sleep when we know we are idle
+            # because we haven&#39;t been assigned any partitions to fetch / consume
+            # 如果目前处于空闲状态（next timeout &gt; now），则先sleep以免CPU空转
+            if self._use_consumer_group() and not self.assignment():
+                sleep_time = max(timeout_at - time.time(), 0)
+                if sleep_time &gt; 0 and not self._client.in_flight_request_count():
+                    time.sleep(sleep_time)
+                    continue
+
+            # Short-circuit the fetch iterator if we are already timed out
+            # to avoid any unintentional interaction with fetcher setup
+            # 如果已经超时了（next timeout &lt; now），则快速结束本次迭代器，防止与fetcher线程发生错误的交互
+            if time.time() &gt; timeout_at:
+                continue
+            # 以上前置条件都检查通过，可以返回一条消息
+            for msg in self._fetcher:
+                yield msg
+                if time.time() &gt; timeout_at:
+                    log.debug(&quot;internal iterator timeout - breaking for poll&quot;)
+                    break
+                if self._client.in_flight_request_count():
+                    self._client.poll(timeout_ms=0)
+
+            # An else block on a for loop only executes if there was no break
+            # so this should only be called on a StopIteration from the fetcher
+            # We assume that it is safe to init_fetches when fetcher is done
+            # i.e., there are no more records stored internally
+            # 当fetcher中没有待取出的消息时才会走到此else分支，此时将fetch请求放入队列等待下次client.poll发送
+            else:
+                self._fetcher.send_fetches()
+</code></pre>
+<!-- 
+## gevent
+
+为什么只有message_generator会阻塞greentlet，而poll不会？
+
+
+# Client源码阅读
+
+## kafkaClient poll解析
+
+
+
+-----
+
+选定分区数量：
+根据消费者的处理速度决定，例如消费者写入db的速度为50MB/s，即从一个分区读数据的吞吐不超过这个值，相应的写入分区的吞吐也不应该超过。
+
+
+日志片段的大小会影响使用时间戳获取偏移量的精确度。 -->
+<h1 id="问题思考"><a href="#问题思考" class="headerlink" title="问题思考"></a>问题思考</h1><h2 id="为什么要让（Leader）Consumer自己分配Partition"><a href="#为什么要让（Leader）Consumer自己分配Partition" class="headerlink" title="为什么要让（Leader）Consumer自己分配Partition"></a>为什么要让（Leader）Consumer自己分配Partition</h2><p><a href="https://cwiki.apache.org/confluence/display/KAFKA/Kafka+Client-side+Assignment+Proposal" target="_blank" rel="noopener">https://cwiki.apache.org/confluence/display/KAFKA/Kafka+Client-side+Assignment+Proposal</a></p>
+<p>However, it relies on the server having access to the code implementing the assignment strategy, which is problematic for two reasons:</p>
+<p>First is just a matter of convenience. New assignment strategies cannot be deployed to the server without updating configuration and restarting the cluster. It can be a significant operational undertaking just to provide the capability to do this.<br>Different assignment strategies have different validation requirements. For example, with a redundant partitioning scheme, a single partition can be assigned to multiple consumers. This limits the ability of the coordinator to validate assignments, which is one of the main reasons for having the coordinator do the assignment in the first place.</p>
+<p>如果让Coordinator分配Partition，有两个问题：</p>
+<ol>
+<li>这种情况下，如果要更新、添加Partition策略，就需要更新Server代码，代价太高，不方便。</li>
+<li>不同的分配策略有不同的校验方式（例如在一个分区冗余分配的策略下，一个Partition可以被分给多个Consumer）。这就限制了Coordinator校验分配合法性的能力，这也是一开始让Coordinator执行分配的主要原因之一。</li>
+</ol>
+<!-- 
+如果往后没有新的分配策略，那么让Coordinator进行分配也是个可行的原则，然而当前已经存在若干种分配策略，并且以后还会需要更多，例如：
+
+1. Co-partitioning: 将两个topic进行join之后，有必要将多个Topic的相同Partition分配给同一个Consumer
+2. sticky partitioning: 对于有状态的Consumer，最好减少Rebalance时需要移动的Partition数量。
+3. Redundant partitioning: 在某些场景下，一个Partition可能需要分配给多个Consumer。
+4. Metadata-based assignment： In some cases, it is convenient to leverage consumer-local metadata to make assignment decisions. For example, if you can derive the rack from the FQDN of the Kafka brokers (which is common), then it would be possible to have rack-aware consumer groups if there was a way to communicate each consumer's rack to the partition assignment.
+
+To address the problems pointed out above and support custom assignment strategies easily, we propose to move the assignment to the client. Specifically, we propose to separate the group management capability provided by the coordinator from partition assignment.  We leave the coordinator to handle the former, while the latter is pushed into the consumer. This promotes separation of concerns and loose coupling.
+
+More concretely, instead of the JoinGroup protocol returning each consumer's assignment directly, we modify the protocol to return the list of members in the group and have each consumer decide its assignment independently. This solves the deployment problem since it is typically an order of magnitude easier to update clients than servers. It also decouples the server from the needs of the assignment strategy, which allow us to support the above use cases without any server changes and provide some "future-proofing" for new use cases. For consumers, the join group protocol becomes more of an abstract group membership capability which, in addition to enabling assignment, can be used as a primitive to build other group management functions (such as leadership). 
+
+There are some disadvantages though. First, since the coordinator does not know the owners of a partition, it can no longer verify that offset commits come from the "right" consumer, which potentially opens the door to inconsistent processing. However, as mentioned above, the ability of the server to validate assignments (and therefore commits) would have to be handicapped anyway to support redundant partitioning. Also, with client-side assignment, debugging assignment bugs requires a little more work. Finding assignment errors may involve aggregating logs from each consumer in the group. In practice, the partitioning strategies used by most users will be simple and tested enough that such errors should be unlikely, but it is still a potential concern.
+
+So far, we made an argument to separate group management from resource assignment. A significant benefit of this proposal is that it enables the group membership protocol to be used for other purposes. Below we outline all the use cases that would now be possible due to group management becoming a generic facility in the Kafka protocol. 
+
+The processor client (KIP-): Depending on the nature of your processing, your processor client might require a different partitioning strategy. For e.g. if your processing requires joins, it needs the co-partitioning assignment strategy for those topics and possibly a simple round robin for other topics. 
+Copycat: Here, you have a pool of worker processes in a copycat cluster that act as one large group. If one worker fails, the connector partitions that lived in that process need to be redistributed over the rest of the worker processes. Again, some connectors require a certain assignment strategy while a simple round robin works for others. The problem is the same - group management for a set of processes and assignment of resources amongst them that is really dictated by the application (copycat)  
+Single-writer producer: This use case may be a little out there since the transactional producer work hasn't quite shaped up. But the general idea is that you have multiple producers acting as a group, where only one producer is active and writing at any given point of time. If that producer fails, some other producer in the group becomes the single writer.
+Consumer: A set of consumer processes need to be part of a group and partitions for the subscribed topics need to be assigned to each consumer processes, as dictated by the consumer application.
+Given that there are several non-consumer use cases for a general group management protocol, we propose changing JoinGroupRequest and JoinGroupResponse such that it is not tied to consumer specific concepts.
+
+Below we outline the changes needed to the protocol to make it more general and also the changes to the consumer API to support this.
+ -->
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Middleware/" rel="tag"># Middleware</a>
+          
+            <a href="/tags/Apache-Kafka/" rel="tag"># Apache Kafka</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/笔记/磁盘分区知识笔记/" rel="next" title="磁盘分区知识笔记">
+                <i class="fa fa-chevron-left"></i> 磁盘分区知识笔记
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">Stardust</p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">17</span>
+                  <span class="site-state-item-name">posts</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                
+                  <span class="site-state-item-count">2</span>
+                  <span class="site-state-item-name">categories</span>
+                
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                
+                  <span class="site-state-item-count">29</span>
+                  <span class="site-state-item-name">tags</span>
+                
+              </div>
+            
+
+          </nav>
+
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#Consumer源码解析"><span class="nav-number">1.</span> <span class="nav-text">Consumer源码解析</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Consumer网络模型"><span class="nav-number">1.1.</span> <span class="nav-text">Consumer网络模型</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#consumer-poll解析"><span class="nav-number">1.2.</span> <span class="nav-text">consumer poll解析</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Consumer-join-group-过程"><span class="nav-number">1.2.1.</span> <span class="nav-text">Consumer join-group 过程</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#整体流程"><span class="nav-number">1.2.1.1.</span> <span class="nav-text">整体流程</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Consumer-Group状态变化流："><span class="nav-number">1.2.1.2.</span> <span class="nav-text">Consumer Group状态变化流：</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Group成员的状态定义"><span class="nav-number">1.2.1.3.</span> <span class="nav-text">Group成员的状态定义</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#ConsumerCoordinator-pool"><span class="nav-number">1.2.1.4.</span> <span class="nav-text">ConsumerCoordinator.pool()</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#ConsumerCoordinator-ensure-coordinator-ready"><span class="nav-number">1.2.1.5.</span> <span class="nav-text">ConsumerCoordinator.ensure_coordinator_ready()</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#ConsumerCoordinator-ensure-active-group"><span class="nav-number">1.2.1.6.</span> <span class="nav-text">ConsumerCoordinator.ensure_active_group()</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#ConsumerCoordinator-on-join-complete"><span class="nav-number">1.2.1.7.</span> <span class="nav-text">ConsumerCoordinator.on_join_complete()</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Consumer-poll模型综述"><span class="nav-number">1.2.2.</span> <span class="nav-text">Consumer poll模型综述</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#coordinator-poll"><span class="nav-number">1.2.2.1.</span> <span class="nav-text">coordinator.poll()</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#consumer-update-fetch-positions"><span class="nav-number">1.2.2.2.</span> <span class="nav-text">consumer.update_fetch_positions()</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#fetcher-send-fetches"><span class="nav-number">1.2.2.3.</span> <span class="nav-text">fetcher.send_fetches()</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#fetcher-fetched-records"><span class="nav-number">1.2.2.4.</span> <span class="nav-text">fetcher.fetched_records()</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#consumer-message-generator"><span class="nav-number">1.3.</span> <span class="nav-text">consumer message generator</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#问题思考"><span class="nav-number">2.</span> <span class="nav-text">问题思考</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#为什么要让（Leader）Consumer自己分配Partition"><span class="nav-number">2.1.</span> <span class="nav-text">为什么要让（Leader）Consumer自己分配Partition</span></a></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Stardust</span>
+
+  
+</div>
+
+
+  <div class="powered-by">Powered by <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a></div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">Theme &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Muse</a> v5.1.4</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+  
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+          processEscapes: true,
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+        }
+      });
+    </script>
+
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Queue(function() {
+        var all = MathJax.Hub.getAllJax(), i;
+        for (i=0; i < all.length; i += 1) {
+          all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+      });
+    </script>
+    <script type="text/javascript" src="//cdn.bootcss.com/mathjax/2.7.1/latest.js?config=TeX-AMS-MML_HTMLorMML"></script><!-- hexo-inject:begin --><!-- Begin: Injected MathJax -->
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config("");
+</script>
+
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for(i=0; i < all.length; i += 1) {
+      all[i].SourceElement().parentNode.className += ' has-jax';
+    }
+  });
+</script>
+
+<script type="text/javascript" src="//cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+<!-- End: Injected MathJax -->
+<!-- hexo-inject:end -->
+  
+
+
+  
+
+  
+
+</body>
+</html>

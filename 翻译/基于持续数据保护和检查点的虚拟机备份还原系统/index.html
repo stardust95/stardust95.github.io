@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-CN">
+<head><meta name="generator" content="Hexo 3.8.0">
+  <!-- hexo-inject:begin --><!-- hexo-inject:end --><meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css">
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css">
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="Storage,CDP,Storage Tolerant,Checkpoint,">
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="摘要虚拟机（Virtual Machine，VM）的实时备份恢复系统(time-travel)可以将一台虚拟机的易失性及持久性的状态恢复到过去的某个时间点。这个功能可以被用于提升虚拟机的可用性，也可用于检查虚拟机的历史状态，或从错误状态中恢复。本文提供了一个实现虚拟机实时备份恢复系统，该系统结合了持续数据保护（Continuous Data Protection，CDP）技术和基于在线迁移（liv">
+<meta name="keywords" content="Storage,CDP,Storage Tolerant,Checkpoint">
+<meta property="og:type" content="article">
+<meta property="og:title" content="&lt;基于持续数据保护(CDP)和Checkpoint的虚拟机实时备份恢复系统&gt;论文翻译">
+<meta property="og:url" content="https://stardust-blog.cn/翻译/基于持续数据保护和检查点的虚拟机备份还原系统/index.html">
+<meta property="og:site_name" content="Stardust&#39;s Blog">
+<meta property="og:description" content="摘要虚拟机（Virtual Machine，VM）的实时备份恢复系统(time-travel)可以将一台虚拟机的易失性及持久性的状态恢复到过去的某个时间点。这个功能可以被用于提升虚拟机的可用性，也可用于检查虚拟机的历史状态，或从错误状态中恢复。本文提供了一个实现虚拟机实时备份恢复系统，该系统结合了持续数据保护（Continuous Data Protection，CDP）技术和基于在线迁移（liv">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="https://stardust-blog.cn/翻译/基于持续数据保护和检查点的虚拟机备份还原系统/Figure2.png">
+<meta property="og:image" content="https://stardust-blog.cn/翻译/基于持续数据保护和检查点的虚拟机备份还原系统/Figure3.png">
+<meta property="og:image" content="https://stardust-blog.cn/翻译/基于持续数据保护和检查点的虚拟机备份还原系统/Figure4.png">
+<meta property="og:updated_time" content="2019-01-31T02:46:55.112Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="&lt;基于持续数据保护(CDP)和Checkpoint的虚拟机实时备份恢复系统&gt;论文翻译">
+<meta name="twitter:description" content="摘要虚拟机（Virtual Machine，VM）的实时备份恢复系统(time-travel)可以将一台虚拟机的易失性及持久性的状态恢复到过去的某个时间点。这个功能可以被用于提升虚拟机的可用性，也可用于检查虚拟机的历史状态，或从错误状态中恢复。本文提供了一个实现虚拟机实时备份恢复系统，该系统结合了持续数据保护（Continuous Data Protection，CDP）技术和基于在线迁移（liv">
+<meta name="twitter:image" content="https://stardust-blog.cn/翻译/基于持续数据保护和检查点的虚拟机备份还原系统/Figure2.png">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="https://stardust-blog.cn/翻译/基于持续数据保护和检查点的虚拟机备份还原系统/">
+
+
+
+
+
+  <title><基于持续数据保护(cdp)和checkpoint的虚拟机实时备份恢复系统>论文翻译 | Stardust's Blog</基于持续数据保护(cdp)和checkpoint的虚拟机实时备份恢复系统></title><!-- hexo-inject:begin --><!-- hexo-inject:end -->
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope="" itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <!-- hexo-inject:begin --><!-- hexo-inject:end --><div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope="" itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Stardust's Blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">Live in thinking</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br>
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br>
+            
+            Archives
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://stardust-blog.cn/翻译/基于持续数据保护和检查点的虚拟机备份还原系统/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Stardust">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Stardust's Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline"><基于持续数据保护(cdp)和checkpoint的虚拟机实时备份恢复系统>论文翻译</基于持续数据保护(cdp)和checkpoint的虚拟机实时备份恢复系统></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2018-03-27T11:27:34+08:00">
+                2018-03-27
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/翻译/" itemprop="url" rel="index">
+                    <span itemprop="name">翻译</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h1 id="摘要"><a href="#摘要" class="headerlink" title="摘要"></a>摘要</h1><p>虚拟机（Virtual Machine，VM）的实时备份恢复系统(time-travel)可以将一台虚拟机的易失性及持久性的状态恢复到过去的某个时间点。这个功能可以被用于提升虚拟机的可用性，也可用于检查虚拟机的历史状态，或从错误状态中恢复。本文提供了一个实现虚拟机实时备份恢复系统，该系统结合了持续数据保护（Continuous Data Protection，CDP）技术和基于在线迁移（live-migration-based）的虚拟机检查点机制（Checkpoint）。特别地，本文提出了一个实现CDP的新方法，能够快速地将虚拟机磁盘状态回滚到某个时间点，也可以撤销回滚操作。这是通过一个简单的时间分支数据结构来实现的。此外，我们还在Xen中设计并实现了一个基于在线迁移的Checkpoint机制。</p>
+<h1 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h1><p>许多 Hypervisor 支持对一台运行中的虚拟机制作Checkpoint。一个Checkpoint通常是捕获了某时刻虚拟机的易失性存储（内存）及系统状态，并写入到文件中。之后虚拟机就可以通过读取该文件中的状态信息，快速地恢复到创建该Checkpoint的时间点上。如果不关闭原来的虚拟机，直接读取Checkpoint文件并启动一台机器，我们就克隆了某个时间点的一台虚拟机。</p>
+<p>虽然某些Checkpoint机制的实现会将持久性存储（磁盘）的数据也一起备份，但这并不是典型的实现。一般来说，Checkpoint不会包含外部设备（如挂载的SAN或NAS）的数据。只要一台虚拟机依赖的持久性存储数据没有被修改，导致与创建Checkpoint时机器上的内存数据发生不一致，那么这台虚拟机就可以从该Checkpoint恢复。</p>
+<p>持续数据保护（CDP）是一种较新的存储技术，它能够将存储数据快速回滚到过去的任意时间点。极端情况下，CDP需要保存每次修改操作后的磁盘状态。但通常CDP会设定一个粒度，如每隔一秒或一分钟备份一次数据。定时制作快照就是CDP的一种简易实现方式。</p>
+<p>对于某些应用场景，回滚磁盘的状态也能将虚拟机重置到过去的某个状态——因为恢复磁盘后重启虚拟机等效于机器断电后重启。然而，这种重启操作丢失了虚拟机的内存数据，对某些应用来说这是无法接受的，因为应用的重启需要恢复这些内存，可能会相当耗时。此外，虚拟机重启还可能会丢失某些关键数据，例如用来诊断虚拟机故障的数据，只会暂存于内存中。</p>
+<p>通过使用CDP这种存储技术来记录任意时间点的存储数据，结合虚拟机Checkpoint技术，我们能够实现一种虚拟机快速备份恢复的机制，可以将虚拟机的内存和磁盘数据回滚到过去的任意时间点。为此，我们备份Checkpoint的时间需要和CDP记录保持一致，并在这些时间点同时记录CDP并制作Checkpoint。要回滚虚拟机到某个时间点，只需要通过Checkpoint文件恢复虚拟机的内存数据，通过CDP记录恢复磁盘数据即可。回滚操作所需要的时间约等于从磁盘上读取Checkpoint文件的时间，不需要重启。这种方法的开销来自定期地将虚拟机的Checkpoint文件写入磁盘。制作Checkpoint的次数越频繁，可被回滚到的时间点越多。</p>
+<p>我们的主要贡献是通过结合CDP和虚拟机Checkpoint技术，分别用于备份虚拟机的磁盘和内存数据，由此实现了一个通用的虚拟机备份恢复服务。我们已经在Linux和Xen上实现了一个原型，能够为运行在Xen上的虚拟机提供备份还原服务，且不需要对虚拟机做任何修改。</p>
+<p>我们的实现主要包括两个组件：一个支持CDP的存储子系统，以及一个能将虚拟机内存保存到磁盘的Checkpoint组件。虚拟机在同一时刻的内存和磁盘数据会被周期性地保存。</p>
+<p>本文后续会在第二部分描述几个虚拟机实时备份恢复系统的应用场景，第三、四部分分别用于介绍我们的CDP存储系统和Checkpoint组件。第五部分介绍一些相关工作，最后第六部分是总结与后续展望。</p>
+<h1 id="应用场景"><a href="#应用场景" class="headerlink" title="应用场景"></a>应用场景</h1><p>虚拟机实时备份恢复系统可能的应用场景包括：</p>
+<ul>
+<li>增强可用性。过去使用Checkpoint（包括虚拟机和物理机）的一个主要动机是为了从耗时的计算任务中断中恢复。传统的方案只恢复磁盘数据，或者就只面向于那些不依赖外部设备的应用。通过本文的实时备份恢复系统，我们就拥有了一种能够在虚拟机故障后恢复内存和磁盘状态的通用方式。它能够将虚拟机从病毒、管理员误操作等严重的故障中快速地恢复。快速的备份恢复在一些无法准确判断回滚时间点的场景下尤其重要，例如找到一次故障发生的时间点。</li>
+<li>故障诊断。虚拟机宕机后，可以将其回滚到问题出现前的某个时间点查找原因，例如使用调试器。此外，通过实时备份恢复系统克隆出现问题的虚拟机，可以保证在业务不中断的情况下诊断问题。</li>
+<li>系统管理。通过虚拟机的克隆，能够在不影响生产环境的情况下加快测试系统升级、补丁、配置的修改。</li>
+<li>启动加速。可以将虚拟机回滚到系统正常启动后的时间点，作为快速重启的一种方法。</li>
+</ul>
+<p>我们还注意到实时备份恢复系统在大部分事务性的应用中存在问题：从一个已提交的事务操作中中断会导致客户端出错，因为这违背了事务的持久性（Durability）。</p>
+<h1 id="存储系统支持"><a href="#存储系统支持" class="headerlink" title="存储系统支持"></a>存储系统支持</h1><p>CDP功能可以通过存储控制器、网络设备或宿主机上的软件来提供。我们选择的是基于宿主机，结合Hypervisor向虚拟机提供CDP服务的方案，因此该方案在任意操作系统和存储设备都可适用。</p>
+<p>基于我们所预测的实时备份恢复系统应用场景，我们按照如下的需求设计存储系统：</p>
+<ul>
+<li>保护粒度：保护粒度控制的是可回滚到的时间点的数量。本系统应支持粗粒度的保护，避免不必要的开销；同时也需要支持扩展到细粒度，例如”每秒一次“或更小。</li>
+<li>回滚鲁棒性：本系统应支持快速的回滚操作，被回滚后的磁盘必须能够快速响应I/O操作。磁盘回滚后作为生产环境的磁盘，也需要继续支持备份回滚的能力。回滚操作必须是可撤销的，这对于消除误操作非常关键。</li>
+<li>磁盘空间管理：系统需要支持自动回收空间。CDP的实现通常会定义一个可回滚时间窗，表示所有可以被回滚到的时间段，通常按天或周的顺序来组织。这些时间窗外的数据是可被回收再利用的。</li>
+<li>性能：需要最小化实时备份恢复系统带来的性能影响。</li>
+<li>支持克隆：系统需要支持创建克隆副本，即磁盘在过去某个时间点的一个可写副本。该操作能够在不回滚生产环境盘的情况下找到最合适的回滚点，也有利于故障诊断或系统的管理。某些应用可能需要创建大量的克隆副本，因此克隆的创建应是快速的，并且需要支持配置精简(轻量级)的克隆。最后，被克隆出的磁盘也应被当做一等公民，也需要支持回滚或克隆操作。</li>
+</ul>
+<p>本文主要只是描述了存储层对备份恢复功能的支持，但是下文描述的机制也可以通过简单的扩展以支持克隆。</p>
+<p>本章主要内容如下：3.1节介绍我们CDP系统的整体架构；3.2节描述了如何组织CDP元数据以支持上述需求；3.3节描述我们所实现的原型的系统架构；最后3.4节描述了元数据是如何在整个系统中使用的。</p>
+<h2 id="支持检查点机制的CDP架构"><a href="#支持检查点机制的CDP架构" class="headerlink" title="支持检查点机制的CDP架构"></a>支持检查点机制的CDP架构</h2><p>在近期的一篇论文中，我们描述了几种用于支持备份回滚机制的存储架构。在本文中我们将重点放在支持检查点机制的CDP架构上。该架构将一个磁盘分卷的存储于<em>生产环境盘</em>（production device）的当前版本与存在<em>备份盘</em>（repository device）中的历史版本分离出来，可提供快速的读操作，因为访问生产环境磁盘时不会发生间接引用。同时生产环境磁盘也考虑了访问局部性，采用磁盘预读保证顺序读性能不受影响。唯一的代价是数据都需要同时写或拷贝到生产环境磁盘与备份盘中。当生产环境磁盘中的一个块即将被更新时，这个块就需要被拷贝到备份盘中，即写时拷贝（copy-on-write，COW）。</p>
+<p>当用户希望将系统回滚到过去某个时间点时，生产环境盘需要使用对应的数据更新。更新这些数据的整个过程只会在后台进行且不会阻塞I/O：写操作直接写到生产环境磁盘，读操作直接从备份盘中读取。为了达到快速回滚的效果，在前一次回滚操作仍在后台执行时，系统也可以接受一次新的回滚任务。这样做的好处是回滚能够对用户立即生效，虽然后台在拷贝数据的过程中性能会有所下降。</p>
+<h2 id="备份盘元数据"><a href="#备份盘元数据" class="headerlink" title="备份盘元数据"></a>备份盘元数据</h2><p>这一节中我们会说明如何使用元数据来组织备份盘中的数据，以便支持分卷的备份回滚。可以通过简单的修改来使其支持分卷的克隆，但在这里我们忽略这些细节。这项工作的主要贡献是实现了一个支持元数据框架，用于支持<em>快速的、可撤销</em>的回滚操作，且该回滚操作基本上可以将硬盘的数据回滚到过去任意时间点。</p>
+<p>除了Checkpoint系统之外，我们的备份盘的元数据结构也适用于我们之前描述的其他CDP架构。在3.4节我们会描述如何将这个元数据框架整合到Checkpoint系统中。</p>
+<h3 id="元数据索引"><a href="#元数据索引" class="headerlink" title="元数据索引"></a>元数据索引</h3><p>为了支持快速、可撤销的回滚操作，我们的元数据包含一个逻辑时间戳，物理地址，及一个包含了每个被写入备份盘的块的<em>分支（branch）</em>。每个盘的时间戳都是一个计数器，盘的递增速度与保护粒度有关: 在粗粒度的保护下时间戳增长较慢，对于细粒度的保护（甚至是”每写一次”)增长较快；物理地址表示一个块在备份盘中的位置；每次回滚操作会引入一个新的分支，新分支会继承回滚时盘的分支作为父分支。每个盘包含一个<em>当前分支</em>，该盘的所有写请求都会关联到其当前分支上。我们将在3.2.2小节给出一个具体的例子。</p>
+<p>备份盘中的时间戳，物理地址和块的分支存储在两个元数据索引中，可以用常规的B-树(B-Tree)实现：</p>
+<ol>
+<li>用<strong>branch-table</strong>(分支表)存储分支结构。每个节点的键(Key)是分支的id，值是&lt;开始时间，结束时间，父分支id，回滚到的时间&gt;。</li>
+<li>用<strong>LPMap</strong>(logical to physical map，逻辑地址到物理地址映射)存储块的地址，节点的Key是块的&lt;逻辑地址，时间戳&gt;，值是块在备份盘中的位置(物理地址)。</li>
+</ol>
+<p>这些索引用来支持一个盘的读、写和回滚请求，其中读、写请求会转化为索引上的查找和插入操作。</p>
+<p>用一个固定的元数据结构被用于管理备份磁盘上的空间分配。该结构不需要被实时备份恢复系统感知，我们目前通过B-Tree实现，用于对备份盘上的空闲空间做索引。需要指出的是备份盘并不一定要提供最优的顺序读性能，因为我们只在执行了一次回滚操作后的短暂时间内会从备份盘读数据。该系统强调的是需要提高空闲空间分配以及写备份盘的性能，类似于LFS。</p>
+<p>我们针对元数据实现了下述API：</p>
+<ul>
+<li>insert(logical address, timestamp, physical address): 将对应的节点插入到LPMap中。</li>
+<li>lookup(logical address): 该API得到的是对应逻辑地址上最后一个写请求的物理位置。由于分支会继承其父分支上的写记录，因此需要一个递归算法，如图1所示。该API返回的是块的物理地址。</li>
+<li>revert(revert-to-time): 创建一个新的分支，开始时间是当前时间，父分支是盘在revert-to-time时刻的分支。该API标记当前分支的结束时间，并将新创建的分支设置为当前分支。</li>
+</ul>
+<pre><code>lookup(l)
+b = 当前分支, t = 当前时间戳
+while (b != NULL) {
+  如果LPMap上存在前缀为l且时间戳在start-time(b)和t之间的最新一条记录
+     return 对应的物理地址
+  else
+     t = revert-to-time(b)
+     b = parent(b)
+}
+return NULL
+</code></pre><blockquote>
+<p>图1: lookup(l)的伪代码，其中l表示一个逻辑地址。从当前分支向上找到该地址的最后一次写操作。</p>
+</blockquote>
+<p>需要注意的是分支在时间上不会有交集，也就是说给定的一个时间戳仅会属于一个分支。这就意味着branch table中父分支id这一列可以省略掉，因为若分支A是分支B的父分支，那么分支B的回滚目标时间点一定被包含在分支A的起止时间窗内。我们在3.2.2小节给出的示例中省略了父分支id列。</p>
+<p>在3.4节中将会描述如何在支持检查点的CDP（Checkpointing CDP）存储架构中使用上述API。</p>
+<p>我们希望一般情况下branch table的大小比对应的LPMap小几个数量级，这样在大量分支的情况下也能将其缓存在内存中。值得一提的是，只要一个逻辑地址的写记录足够短（例如可以仅用一个B-Tree磁盘页保存），那么lookup的实现就可以避免访问多个B-Tree节点。此外，分支的时间戳使得我们可以扩展到“每写一次”的保护粒度。另一个选择是对每一次写操作引入一个新的分支，这样会导致branch table的大小剧增。</p>
+<h3 id="使用示例"><a href="#使用示例" class="headerlink" title="使用示例"></a>使用示例</h3><p>图2展示了branch table(见图右)，以及LPMap的其中一部分（对应的逻辑地址为12，见图左）。整张图表示了从时间点0到120的过程，其中回滚操作发生在时间点80（回滚到35）和时间点100（回滚到70）。要想在时间点105查找地址12的位置，我们首先找到在区间[100, 105)内最新的LPMap记录。但因为无法找到，我们继续找区间[35, 80)中最新的记录，可以看到在时间点60有对应的记录（对应的物理地址为d）。注意到虽然我们可以通过重新执行第二个回滚操作来改变回滚的目标时间点，但时间点60对应的记录在第一次回滚到时间点35后将无法被访问。由于没有对回滚的次数做限制，因此系统可以用于查找最优回滚时间点，例如病毒爆发前的最近一个时间点。</p>
+<img src="/翻译/基于持续数据保护和检查点的虚拟机备份还原系统/Figure2.png">
+<blockquote>
+<p>图2：描述了一个插入、回滚操作序列的元数据索引：LPMap（图左）和branch table（右）。</p>
+</blockquote>
+<h3 id="空间回收"><a href="#空间回收" class="headerlink" title="空间回收"></a>空间回收</h3><p>CDP系统允许声明一个<em>可访问时间窗</em>，用于限制系统可回滚到的时间点。有了这个限制，系统就能够对备份盘中不需要的元数据和用户数据进行自动空间回收。</p>
+<p>空间回收通过扫描LPMap结构实现。对于每个逻辑地址，扫描并标记它在LPMap中的所有记录，并将所有无法被访问的Block回收。显然，至少一个时间戳在可访问时间窗内的块都不能被回收。包含了旧时间戳的块可以被回收，当且仅当它们在CDP时间窗内<em>不可见</em>。branch table的记录垃圾回收也需要执行。</p>
+<h2 id="系统架构"><a href="#系统架构" class="headerlink" title="系统架构"></a>系统架构</h2><p>我们在Linux和Xen上实现了一个基于hypervisor的块CDP层，用于支持Xen上虚拟机的备份回滚。这个原型系统是用C写的，同时使用了Berkeley DB库来支持持久化元数据B-Tree。</p>
+<p>在Xen下，虚拟机的I/O通过Linux运行的特权域<a href="https://wiki.xenproject.org/wiki/Dom0" target="_blank" rel="noopener">dom0</a>来执行。Xen提供了一个称为<em>blktap</em>(block tap)的可扩展块I/O截获框架，能够将虚拟机的块I/O请求转发到运行在dom0中的用户进程。为了提高性能，I/O请求通常会被合并以批量的形式到达。结合blktap与我们的存储系统，可以给虚拟机透明地提供支持CDP的硬盘分卷。</p>
+<p>为了使我们的大部分代码可以<em>跨hypervisor使用</em>，我们将存储子系统分为两部分：hypervisor相关的I/O解释器，以及分离的CDP服务进程。所有的元数据管理，后台任务，管理操作，到备份盘的I/O等等都由CDP服务进程处理，而解释器进程则处理由虚拟机发来的生产环境磁盘数据I/O操作。</p>
+<p>解释器通过<a href="https://en.wikipedia.org/wiki/Inter-process_communication" target="_blank" rel="noopener">IPC</a>（Inter-process communication，进程间通信）与CDP服务进程通信。由于IPC只包含了I/O请求本身，并不包含其内容，因此开销相对较小。IPC给CDP服务重定向请求，以及在解释器需要访问生产环境盘或备份盘前做的准备工作提供了一个方式。通信只在每次的批量I/O请求到达时需要进行。</p>
+<p>CDP服务进程支持一个简单的管理协议。命令行客户端是的管理者可以设置启用CDP的磁盘分卷，或将磁盘回滚到过去的时间点。</p>
+<p>我们的存储子系统是<em>基于事件</em>的，意味着分卷的逻辑时间戳是通过一个外部进程来递增的。每个返回给调用者的时间戳都是之后可以被回滚到的时间点。对于细粒度保护来说，很容易让存储系统自动周期性地递增时间戳。</p>
+<img src="/翻译/基于持续数据保护和检查点的虚拟机备份还原系统/Figure3.png">
+<blockquote>
+<p>图3：系统架构和存储架构</p>
+</blockquote>
+<p>图3展示了基本的组件和存储布局。该图描述了多个运行在同一台物理机上的虚拟机，它们的I/O请求被与CDP服务通信的I/O解释器组件解析。事件标记和回滚等管理命令通过一个管理客户端处理。用于备份回滚内存的Checkpointer可以按设定的频率被调用，这个细节会在第四部分讨论。每个开启了CDP的存储磁盘分卷会关联到一个生产环境磁盘、备份盘和元数据文件（Berkeley DB索引）。每个虚拟机有对应的Checkpoint文件。如果需要支持物理机间的在线迁移，那么所有的数据都应该放在可共享的存储设备上。</p>
+<p>虚拟机的I/O数据流不会在我们的存储子系统上缓存。一旦写I/O到达解释器，就会在虚拟机操作系统的缓冲区上被清理掉，就像使用普通的磁盘一样。另一方面，CDP服务的元数据会被缓存，在我们的实现中它是通过Berkeley DB被缓存的。</p>
+<p><em>块大小</em>决定了生产环境磁盘和历史记录盘(备份盘)上实际I/O的对齐方式(alignment)。虚拟机的I/O请求都可以被执行，但是一个非对齐的I/O请求可能需要一次额外的I/O。块大小设置得越大，备份盘上的元数据就越少。通常将块大小设置为与虚拟机的缓存页面相同大小（4K）是一个不错的选择。对于虚拟机上运行的数据库，最好的块大小应是数据库的缓存页面大小。</p>
+<h2 id="支持检查点的CDP架构中元数据的使用"><a href="#支持检查点的CDP架构中元数据的使用" class="headerlink" title="支持检查点的CDP架构中元数据的使用"></a>支持检查点的CDP架构中元数据的使用</h2><p>我们先给出一个CDP服务器对于每个读、写和回滚操作的执行过程大纲。</p>
+<p>执行一次回滚任务首先包括执行元数据回滚操作，即创建一个新的分支并关联到目标卷上。回滚操作会在CDP服务器上启动一次后台任务，将数据从备份盘拷贝到生产环境盘，该过程对用户虚拟机是透明的。如果有拷贝任务正在进行，我们称这个盘为<em>活跃</em>（active）的。</p>
+<p>如果没有活跃的回滚操作（通常情况），那么读操作不需要查询元数据。如果有活跃的回滚操作，那么数据必须要从备份盘中读出，这种情况会发生在例如后台进程还没有拷贝该块的情况下。这样CDP服务会执行一次元数据查询操作来定位所需访问的数据，并将其从备份盘上拷贝到生产环境盘。一旦拷贝完成，解析器就能从生产环境磁盘读到相应的数据，与没有回滚操作时相同。</p>
+<p>对于写操作，旧版本的目标块需要先被拷贝到备份盘（COW），因此包含了一次空间分配，随后是一个元数据插入操作。注意到这个过程仅在一次回滚后第一次写入一个逻辑地址时发生。是否第一次写入，通过在内存中维护一个位图表示，也可以执行一次元数据查询操作来确定。</p>
+<p>空间回收是一个在CDP服务器持续运行的后台进程。我们注意到空间回收仅处理元数据，这点与Rosenblum和Ousterhout所提出的<em>日志结构文件系统的清理进程</em>不同。</p>
+<h1 id="Checkpointer组件"><a href="#Checkpointer组件" class="headerlink" title="Checkpointer组件"></a>Checkpointer组件</h1><p>在我们做这个项目时，Xen还没有集成虚拟机Checkpoint机制（但是最近类似的特性已经合到了Xen的不稳定分支上），因此我们实现了一个“足够好用”的Checkpointer组件，它使用了Xen的某些特性但不需要对Xen进行任何修改。Xen支持两种Checkpoint相关的操作：<em>保存</em>（save）和<em>恢复</em>（restore），以及<em>虚拟机在线迁移</em>（live migration）。保存一个虚拟机会使得它进入挂起状态；恢复操作会把虚拟机从挂起的时间点继续执行。然而，Xen中的Checkpoint不能简单地用save后restore来实现，因为save操作会中断被保存的虚拟机。在Xen挂起虚拟机的过程中，会隔断所有的网络连接。</p>
+<p>另一方面，Xen支持的在线迁移使得一台运行中的虚拟机可以被迁移到另一台物理机上，并且引起的中断影响极小（也就是说网络连接不会被隔断）。因此我们通过迁移虚拟机到同一个hypervisor上来实现Checkpoint。在迁移过程中，迁移过程中产生的比特流会被写入到一个文件中。我们的Checkpointer组件会截获源和目标机器间的迁移流量，即对源机器伪装成目标机器，对目标及其伪装成源机器。</p>
+<img src="/翻译/基于持续数据保护和检查点的虚拟机备份还原系统/Figure4.png">
+<blockquote>
+<p>图4: 通过本地在线迁移的Checkpoint机制</p>
+</blockquote>
+<p>当Checkpointer启动时，它会在一个常用端口上创建一个监听socket并等待发来的迁移请求。要创建一个虚拟机的Checkpoint时，该虚拟机的Xen在线迁移请求会重定向到虚拟机所在物理机的该端口。Checkpointer根据迁移时所用的协议与发起者进行通信，并在同一台物理机上向Xen发起一次迁移请求。随着迁移数据开始传输，Checkpointer捕获这些数据并将虚拟机的临时状态（内存）写入到磁盘，同时转发回Xen。在线迁移的一个特性是在虚拟机状态传输过程中它会持续运行，它只会最小限度地暂停运行以便获取内存中一些脏页和CPU寄存器状态的最终数据。</p>
+<p>在虚拟机暂停的短暂时间窗内，checkpointer会将内存状态制作一个Checkpoint，并通过向虚拟机的存储设备发起一个CDP事件以便于与磁盘状态同步。要将虚拟机回滚到过去一个时间点，只要给定Checkpoint文件和对应的CDP事件，就能够通过CDP管理客户端先将虚拟机的各个存储设备回滚到对应的状态，再通过执行标准的Xen “xm restore”命令，同时将Checkpoint文件作为参数传入。之后虚拟机就能恢复到要回滚到的时间点状态。</p>
+<p>我们基于Xen的在线迁移，实现了一个足够快且透明的Checkpoint机制。其他的方法当然也可以实现，并且对于某些场景或者需要频繁制作Checkpoint时也有更有效的方法。我们的Checkpointer最初只用了几百行的Python代码实现了一个快速的原型，然后又用几百行的C代码实现了可用于生产环境的版本。值得一提的是，在我们的这项工作完成之后，Xen已经在不稳定分支中集成了Checkpoint的支持，通过”xm save -checkpoint”命令即可执行。目前我们正在评估它是否可用于本项目中。</p>
+<h1 id="相关工作"><a href="#相关工作" class="headerlink" title="相关工作"></a>相关工作</h1><p>存储系统中某个时间点的备份(即快照)是一个常见的特性，许多存储控制器、设备、逻辑卷管理器和文件系统都有支持。在需要备份还原的场景下，这些系统的快照支持通常会有所限制，例如只允许较少的快照次数，或对快照制作的频率有所限制。另一方面，使用这些系统来进行磁盘的备份还原通常是一个缓慢的过程，且过程中无法执行I/O请求。此外，通常这些快照的回滚会破坏原有状态，使得回滚操作无法撤销。</p>
+<p>基于版本的文件系统跟踪了文件的更新操作，且允许访问文件的历史版本。这些文件系统保护的单位是文件，用户可以访问特定文件的某个历史版本，但是在基于块的CDP中保护的单元是一整个LUN。然而因为普通文件和目录大小要远小于LUN，且更新次数比LUN要少得多，因此用于管理文件和目录历史版本的元数据设计通常是不可扩展的。一般情况下这种系统只提供对旧版本的只读访问，不支持回滚操作。</p>
+<p>TRAP-Array是一个支持细粒度CDP的系统。这个系统的主要目标是尽量减少CDP历史数据占用的空间。对于细粒度数据保护，他们通过对备份盘中每个块的连续的历史版本进行XOR(按位异或)运算，达到了很好的压缩率。这个系统的主要代价是访问块的特定版本时需要获取块的所有版本记录.该系统不支持在后台执行回滚操作的同时接收新的I/O请求。</p>
+<p>真正实现了实时备份恢复系统的一个例子是由Brown和Patterson给出的。他们的实时备份恢复系统用于支持一个邮件存储系统中的错误恢复。该系统是基于<a href="https://en.wikipedia.org/wiki/NetApp_filer" target="_blank" rel="noopener">NetApp filer</a>系统的快照功能来实现的一个支持实时备份恢复的存储系统。在这个项目中他们克服了filer系统的一些限制，称为“无前向回滚”，也就是说磁盘一旦回滚到了过去的某个时间点，那么当前时间点和回滚目标时间点之间的所有快照数据都会丢失。回滚导致的历史记录丢失使得回滚操作无法撤销，为了解决这个问题他们提出了一个慢且笨重的变通方法——他们不得不通过从旧的快照中拷贝所有文件到当前磁盘上。他们提到的另一个限制条件是filer系统最多只能支持31个快照，这个问题是通过使用一个包含了所有收到的邮件流（有其他用途需要维护）来将系统向前回滚到最近的快照。根据他们在应用上的测试，这个方式比仅仅在磁盘上实现的实时备份回滚系统要慢约两个数量级。</p>
+<p>另一个实现了虚拟机实时备份回滚功能的应用是由Whitaker等人提出的。据描述，他们的系统会在一台虚拟机进入宕机状态（如误操作）时，自动向前搜索回滚的时间点并将虚拟机恢复到某个时间点上。它们的系统只支持磁盘的恢复，且虚拟机在恢复后需要被重启。他们的实时备份恢复磁盘（time-travel disk, TTDISK）是通过将所有的写操作记录到日志，并维护一个类似于LPMap的数据结构来实现的。然而TTDISK没有branch的概念，所以对过去某个时间点数据的读写访问需要在TTDISK上挂载一个独立的COW磁盘，该盘也包含了自身的元数据。目前还不清楚这个COW磁盘是如何支持实时备份回滚的。</p>
+<p>在King等人的工作中，虚拟机的实时备份回滚系统被用于辅助操作系统的调试。他们的系统支持对虚拟机的操作进行细粒度的日志记录，因此可以从过去的某个时间点重放虚拟机的执行过程。这里面包括记录所有可能影响虚拟机执行的非确定性事件。要减少日志重放的开销，可以周期性地对内存和磁盘数据做Checkpoint，之后只需要重放Checkpoint之后的日志，这个任务是通过UML可视化工具完成的。他们的内存Checkpointer实现了一些优化，只会保存上次Checkpoint之后修改过的内存页。这个实时备份回滚系统的存储支持是基于一个非写覆盖模型的，使用一个常驻内存的数据结构将逻辑地址映射到物理位置。该结构只保存当前版本的数据，要支持实时备份回滚需要另外维护该数据结构的变更日志。执行备份或回滚操作，需要对这些元数据变更日志同步地进行重放/撤销。</p>
+<p>Vall ́ee等人提出了一个Xen虚拟机的容错系统，该系统基于对虚拟机磁盘和内存数据的Checkpoint实现。与我们的Checkpoint机制类似，他们的内存Checkpoint机制也是使用已有的Xen特性（save/restore和迁移）实现的。为了支持保存磁盘数据状态，他们使用了运行在客户虚拟机中的unionFS，并且在每次制作磁盘快照时需要关闭虚拟机。此外，他们的系统在制作磁盘快照时包含了大量的数据拷贝，是一个开销较大的操作。</p>
+<p>我们将备份盘元数据结构化的方法与时序数据库的访问方式类似。分支对于事先快速、可撤销的回滚和克隆操作是很关键的，但是大部分时序的访问方式不支持分支。有一个例外是Jiang等人提出的BT-tree，这是一个<em>时序分支</em>（branched-temporal）的结构。分离出一个小的branch-table的想法就是从他们的工作中得到的启发。由于下述几个原因，在我们的场景下可以使用一个更简单的数据结构，并可以映射到一棵标准的B-Tree上。首先，我们的LPMap数据结构不支持时间维度上的快速查询，这使得我们可以避免冗余的记录——也就是说一个特定的key（逻辑地址，分支，时间戳）在我们的LPMap中最多只会出现一次。而BT-tree通过在时间和Key的维度上使用冗余来平衡树，这也增加了元数据的大小，同时使得空间回收变得复杂。另一个简化原因是因为CDP窗口总是比较小，而且需要支持空间回收，我们觉得对一个给定的地址，查找时间和该地址的LPMap大小成正比是合理的。</p>
+<p>WAFL和ZFS文件系统可支持大量的快照。通过频繁地创建快照，可以实现类似CDP的功能。这些文件系统对数据和元数据都采用了非写覆盖的策略。文件系统(包括用户数据和元数据)逻辑上用一个树状结构来组织。创建一个快照就是创建一个新的根节点，且新的根与已存在的节点共享子节点。对任一逻辑块的首次写入会导致整条树路径上的元数据变更。这个设计与我们的LPMap(B-Tree)插入节点时执行的元数据页内更新(update-in-place)有所不同。</p>
+<p>Paralax是一个用于Xen虚拟机集群的存储子系统，其设计目标中提到能够每30秒对虚拟机的内存和磁盘数据进行一次Checkpoint操作。该系统用一个基数树(Radix Tree)来讲逻辑块地址映射到物理地址，并且类似于WALF中的设计，分支是通过为每个分支创建一棵新的（有重叠）树结构实现的。</p>
+<h1 id="总结和展望"><a href="#总结和展望" class="headerlink" title="总结和展望"></a>总结和展望</h1><p>我们描述了一个通过利用虚拟机Checkpoint机制，并结合存储层CDP功能实现的虚拟机实时备份恢复系统。我们的系统支持快速、可撤销的回滚操作，加快了虚拟机宕机后恢复可用性的过程。存储的克隆功能对某些场景，例如系统的管理和诊断来说同样重要，并且克隆操作在虚拟机镜像管理等方面也有应用。我们的基础架构可被扩展以支持克隆，并且我们也希望完全将克隆操作直接包含在我们的系统中。此外，我们还打算针对我们的存储层做一个详细的性能评估，也有兴趣对<em>分流</em>(SplitStream)CDP架构添加支持，并横向比较CDP架构的性能。</p>
+<h1 id="声明"><a href="#声明" class="headerlink" title="声明"></a>声明</h1><p>感谢来自IBM的 Dan Smith 和 Andrew Ball，他们对Checkpoint解决方案提出了深刻见解。感谢来自IBM/HRL CDP团队过去和现在的成员：Uri Braun, Eitan Yaffe, Doron Chen, Yaron Orenstein, Ari Yakir 和 Ealan Henis. 感谢 Alain Azagury 首先建议我们将虚拟机Checkpoint机制与CDP结合起来. 最后, 感谢我们经理 Dalit Naor, Yaron Wolfsthal and Kalman Meth 所给予的支持。</p>
+<h1 id="参考文献"><a href="#参考文献" class="headerlink" title="参考文献"></a>参考文献</h1><p>[1] ZFS: The last word in file systems. <a href="http://www.sun.com/2004-0914/feature/" target="_blank" rel="noopener">http://www.sun.com/2004-0914/feature/</a>.<br>[2] A. Azagury, M. E. Factor, J. Satran, and W. Micka. Point-in-Time Copy: Yesterday, Today and Tomorrow. In Proceedings of the 10th NASA Goddard and 19th IEEE Symposium Conference on Mass Storage Systems and Technologies (MSST’02), pages 259–270, April 2002.<br>[3] P. Barham, B. Dragovic, K. Fraser, S. Hand, T. Harris, A. Ho, R. Neugebauer, I. Pratt, and A. Warfield. Xen and the art of virtualization. In Proc. 19th ACM Symposium on Operating Systems Principles (SOSP 03), pages 164–177, 2003.<br>[4] R. Bayer and E. M. McCreight. Organization and maintenance of large ordered indices. Acta Informatica, 1:173–189, 1972.<br>[5] A. Brown and D. A. Patterson. Undo for Operators: Building an undoable E-mail store. In Proceedings of USENIX Annual Technical Conference, San Antonio, TX, June 2003.<br>[6] C. Clark, K. Fraser, S. Hand, J. G. Hansen, E. Jul, C. Limpach, I. Pratt, and A. Warfield. Live migration of virtual machines. In In Proceedings of the 2nd ACM/USENIX Symposium on Networked Systems Design and Implementation (NSDI), Boston, MA, May 2005.<br>[7] B. Cully. Virtual machine checkpointing. Xen Summit 2007. <a href="http://www.xensource.com/files/xensummit" target="_blank" rel="noopener">http://www.xensource.com/files/xensummit</a> 4/talk Cully.pdf.<br>[8] B. Cully and A. Warfield. Secondsite: disaster protection for the common server. In Proceedings of the 2nd conference on Hot Topics in System Dependability (HOTDEP’06), pages 12–12, Berkeley, CA, USA, 2006. USENIX Association.<br>[9] J. Damoulakis. Continuous protection. Storage, June 2004, 3(4):33–39, 2004.<br>[10] J. Dike. A user-mode port of the linux kernel. In Proceedings of the 2000 Linux Showcase and Conference, 2000.<br>[11] J. G. Hansen and E. Jul. Self-migration of operating systems. In Proceedings of the 11th ACM SIGOPS European Workshop (EW 2004), pages 126–130, 2004.<br>[12] D. Hitz, J. Lau, and M. A. Malcolm. File system design for an NFS file server appliance. In Proceedings of the Winter’94 USENIX Technical Conference, pages 235–246, 1994.<br>[13] L. Jiang, B. Salzberg, D. B. Lomet, and M. Barrena. The BT-tree: A Branched and Temporal Access Method. In Proceedings of 26th International Conference on Very Large Data Bases (VLDB 2000), September 10-14, 2000, Cairo, Egypt, pages 451–460. 133 Morgan Kaufmann, 2000.<br>[14] S. T. King, G. W. Dunlap, and P. M. Chen. Debugging operating systems with time-traveling virtual machines. In Proceedings of USENIX Annual Technical Conference, April 2005.<br>[15] I. Krsul, A. Ganguly, J. Zhang, J. A. B. Fortes, and R. J. Figueiredo. VMPlants: Providing and managing virtual machine execution environments for grid computing. In SC ’04: Proceedings of the 2004 ACM/IEEE conference on Supercomputing, page 7, Washington, DC, USA, 2004. IEEE Computer Society.<br>[16] G. Laden, P. Ta-Shma, E. Yaffe, M. Factor, and S. Fienblit. Architectures for controller based CDP. In Proceedings 5th USENIX Conference on File and Storage Technologies (FAST ’07), Feb 2007.<br>[17] Z. Peterson and R. Burns. Ext3cow: a time-shifting file system for regulatory compliance. ACM Transactions on Storage, 1(2):190–212, May 2005.<br>[18] M. Rosenblum and J. K. Ousterhout. The design and implementation of a log-structured filesystem. ACM Transactions on Computer Systems, pages 26–52, 1992.<br>[19] B. Salzberg and V. J. Tsotras. Comparison of access methods for time-evolving data. ACM Comput. Surv., 31(2):158–221, 1999.<br>[20] J. C. Sancho, F. Petrini, K. Davis, R. Gioiosa, and S. Jiang. Current practice and a direction forward in checkpoint/restart implementations for fault tolerance. In IPDPS ’05: Proceedings of the 19th IEEE International Parallel and Distributed Processing Symposium - Workshop 18, page 300.2, Washington, DC, USA, 2005. IEEE Computer Society.<br>[21] D. J. Santry, M. J. Feeley, N. C. Hutchinson, A. C. Veitch, R. W. Carton, and J. Otir. Deciding when to forget in the Elephant file system. In Proc. 17th ACM Symposium on Operating Systems Principles (SOSP 99), 1999.<br>[22] C. P. Sapuntzakis, R. Chandra, B. Pfaff, J. Chow, M. S. Lam, and M. Rosenblum. Optimizing the migration of virtual computers. In Proceedings of the 5th Symposium on Operating Systems Design and Implementation, December 2002.<br>[23] M. D. Schroeder, D. K. Gifford, and R. M. Needham. A caching file system for a programmer’s workstation. In Proceedings of the 10th ACM Symposium on Operating Systems Principles, pages 25–34, 1985.<br>[24] M. I. Seltzer. Berkeley DB: A Retrospective. IEEE Data Eng. Bull., 30(3):21–28, 2007.<br>[25] E. Skoglund, C. Ceelen, and J. Liedtke. Transparent orthogonal checkpointing through user-level pagers. In Proceedings of the 9th International Workshop on Persistent Object Systems, pages 201–215, Lillehammer, Norway, Sept. 6–8 2000.<br>[26] G. Vall ́ee, T. Naughton, H. Ong, and S. L. Scott. Checkpoint/restart of virtual machines based on xen. In High Availability and Performance Computing Workshop (HAPCW’06), Santa Fe, New Mexico, USA, Oct. 2006. Held in conjunction with LACSI 2006.<br>[27] M. Vrable, J. Ma, J. Chen, D. Moore, E. Vandekieft, A. C. Snoeren, G. M. Voelker, and S. Savage. Scalability, fidelity, and containment in the potemkin virtual honeyfarm. SIGOPS Oper. Syst. Rev., 39(5):148–162, 2005.<br>[28] A. Warfield, K. Fraser, S. Hand, and T. Deegan. Facilitating the development of soft devices. In Proc. USENIX Annual Technical Conference, pages 379–382, 2005.<br>[29] A. Warfield, R. Ross, K. Fraser, C. Limpach, and S. Hand. Parallax: Managing storage for a million machines. In USENIX Hot Topics in Operating Systems (HOTOS), 2005.<br>[30] A. Whitaker, R. S. Cox, and S. D. Gribble. Configuration debugging as search: Finding the needle in the haystack. In Proceedings of the Sixth Symposium on Operating Systems Design and Implementation (OSDI 2004), San Francisco, CA, December 2004.<br>[31] C. P. Wright, J. Dave, P.Gupta, H. Krishnan, E. Zadok, and M. N. Zubair. Versatility and unix semantics in a fan-out unification file system. Technical Report FSL-04-01b, Computer Science Department, StonyBrook University, October 2004.<br>[32] Q. Yang, W. Xiao, and J. Ren. TRAP-Array: A disk array architecture providing timely recovery to any point-in-time. In Proceedings of the 33rd annual international symposium on Computer Architecture (ISCA’06), pages 289–301, Washington, DC, USA, 2006. IEEE Computer Society.</p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Storage/" rel="tag"># Storage</a>
+          
+            <a href="/tags/CDP/" rel="tag"># CDP</a>
+          
+            <a href="/tags/Storage-Tolerant/" rel="tag"># Storage Tolerant</a>
+          
+            <a href="/tags/Checkpoint/" rel="tag"># Checkpoint</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/笔记/iostat学习笔记/" rel="next" title="Linux通用块层及iostat学习笔记">
+                <i class="fa fa-chevron-left"></i> Linux通用块层及iostat学习笔记
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/笔记/Paxos算法学习笔记/" rel="prev" title="Paxos算法学习笔记">
+                Paxos算法学习笔记 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">Stardust</p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">17</span>
+                  <span class="site-state-item-name">posts</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                
+                  <span class="site-state-item-count">2</span>
+                  <span class="site-state-item-name">categories</span>
+                
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                
+                  <span class="site-state-item-count">29</span>
+                  <span class="site-state-item-name">tags</span>
+                
+              </div>
+            
+
+          </nav>
+
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#摘要"><span class="nav-number">1.</span> <span class="nav-text">摘要</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#概述"><span class="nav-number">2.</span> <span class="nav-text">概述</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#应用场景"><span class="nav-number">3.</span> <span class="nav-text">应用场景</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#存储系统支持"><span class="nav-number">4.</span> <span class="nav-text">存储系统支持</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#支持检查点机制的CDP架构"><span class="nav-number">4.1.</span> <span class="nav-text">支持检查点机制的CDP架构</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#备份盘元数据"><span class="nav-number">4.2.</span> <span class="nav-text">备份盘元数据</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#元数据索引"><span class="nav-number">4.2.1.</span> <span class="nav-text">元数据索引</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#使用示例"><span class="nav-number">4.2.2.</span> <span class="nav-text">使用示例</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#空间回收"><span class="nav-number">4.2.3.</span> <span class="nav-text">空间回收</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#系统架构"><span class="nav-number">4.3.</span> <span class="nav-text">系统架构</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#支持检查点的CDP架构中元数据的使用"><span class="nav-number">4.4.</span> <span class="nav-text">支持检查点的CDP架构中元数据的使用</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Checkpointer组件"><span class="nav-number">5.</span> <span class="nav-text">Checkpointer组件</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#相关工作"><span class="nav-number">6.</span> <span class="nav-text">相关工作</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#总结和展望"><span class="nav-number">7.</span> <span class="nav-text">总结和展望</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#声明"><span class="nav-number">8.</span> <span class="nav-text">声明</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#参考文献"><span class="nav-number">9.</span> <span class="nav-text">参考文献</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Stardust</span>
+
+  
+</div>
+
+
+  <div class="powered-by">Powered by <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a></div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">Theme &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Muse</a> v5.1.4</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+  
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+          processEscapes: true,
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+        }
+      });
+    </script>
+
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Queue(function() {
+        var all = MathJax.Hub.getAllJax(), i;
+        for (i=0; i < all.length; i += 1) {
+          all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+      });
+    </script>
+    <script type="text/javascript" src="//cdn.bootcss.com/mathjax/2.7.1/latest.js?config=TeX-AMS-MML_HTMLorMML"></script><!-- hexo-inject:begin --><!-- Begin: Injected MathJax -->
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config("");
+</script>
+
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for(i=0; i < all.length; i += 1) {
+      all[i].SourceElement().parentNode.className += ' has-jax';
+    }
+  });
+</script>
+
+<script type="text/javascript" src="//cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+<!-- End: Injected MathJax -->
+<!-- hexo-inject:end -->
+  
+
+
+  
+
+  
+
+</body>
+</html>

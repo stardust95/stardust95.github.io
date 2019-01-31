@@ -1,0 +1,1056 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-CN">
+<head><meta name="generator" content="Hexo 3.8.0">
+  <!-- hexo-inject:begin --><!-- hexo-inject:end --><meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css">
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css">
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="C++,Programming Language,">
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="类和对象 结构体和类的区别 : (主要体现在访问控制) : Struct 中的成员默认是public, class默认是private 以struct为继承对象, 默认是public继承, 而以class为继承对象默认为私有继承注: struct 和class 都可以在定义的时候用{}赋初值, 只要被赋初值的class成员是public的)   拷贝构造函数被调用的场景: 使用同一个类的其他对象进">
+<meta name="keywords" content="C++,Programming Language">
+<meta property="og:type" content="article">
+<meta property="og:title" content="C++学习笔记-面向对象">
+<meta property="og:url" content="https://stardust-blog.cn/笔记/C-学习笔记-面向对象/index.html">
+<meta property="og:site_name" content="Stardust&#39;s Blog">
+<meta property="og:description" content="类和对象 结构体和类的区别 : (主要体现在访问控制) : Struct 中的成员默认是public, class默认是private 以struct为继承对象, 默认是public继承, 而以class为继承对象默认为私有继承注: struct 和class 都可以在定义的时候用{}赋初值, 只要被赋初值的class成员是public的)   拷贝构造函数被调用的场景: 使用同一个类的其他对象进">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2018-12-21T15:54:44.094Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="C++学习笔记-面向对象">
+<meta name="twitter:description" content="类和对象 结构体和类的区别 : (主要体现在访问控制) : Struct 中的成员默认是public, class默认是private 以struct为继承对象, 默认是public继承, 而以class为继承对象默认为私有继承注: struct 和class 都可以在定义的时候用{}赋初值, 只要被赋初值的class成员是public的)   拷贝构造函数被调用的场景: 使用同一个类的其他对象进">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="https://stardust-blog.cn/笔记/C-学习笔记-面向对象/">
+
+
+
+
+
+  <title>C++学习笔记-面向对象 | Stardust's Blog</title><!-- hexo-inject:begin --><!-- hexo-inject:end -->
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope="" itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <!-- hexo-inject:begin --><!-- hexo-inject:end --><div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope="" itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Stardust's Blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">Live in thinking</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br>
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br>
+            
+            Archives
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://stardust-blog.cn/笔记/C-学习笔记-面向对象/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Stardust">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Stardust's Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">C++学习笔记-面向对象</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2015-09-01T14:41:00+08:00">
+                2015-09-01
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/笔记/" itemprop="url" rel="index">
+                    <span itemprop="name">笔记</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="类和对象"><a href="#类和对象" class="headerlink" title="类和对象"></a>类和对象</h2><ul>
+<li>结构体和类的区别 : (主要体现在访问控制) :<ol>
+<li>Struct 中的成员默认是public, class默认是private</li>
+<li>以struct为继承对象, 默认是public继承, 而以class为继承对象默认为私有继承<br>注: struct 和class 都可以在定义的时候用{}赋初值, 只要被赋初值的class成员是public的)</li>
+</ol>
+</li>
+<li>拷贝构造函数被调用的场景: 使用同一个类的其他对象进行<strong>初始化</strong><pre><code class="lang-cpp">  String func(){
+      String b;
+      String c(b);     // 显式调用了拷贝构造函数
+      String a = b;    // 隐式调用了拷贝构造函数
+      return b;        // 由于返回值是String对象, 隐式调用了拷贝构造函数
+  }
+</code></pre>
+</li>
+<li>拷贝构造函数和赋值函数的区别<br>  拷贝构造函数和赋值函数非常容易混淆，常导致错写、错用。拷贝构造函数是在对象被创建时调用的，而赋值函数只能被已经存在了的对象调用。<pre><code class="lang-cpp">  String a(“hello”);
+  String b(“world”);
+  String c = a; // 调用了拷贝构造函数，最好写成c(a);
+  c = b; // 调用了赋值函数
+</code></pre>
+</li>
+<li>C++初始化对象数组的过程: 首先用默认构造函数创建数组元素, 然后花括号中的构造函数将创建临时对象, 再将临时对象复制到相应的数组元素中.( 因此要创建对象数组必须有一个默认(无参)构造函数)</li>
+<li>声明为explicit的<strong>构造函数</strong>不能在隐式转换中使用</li>
+<li>使用new来申请内存, 必须用delete释放内存, 同样地用new []来申请的内存必须用delete [] 来释放</li>
+<li>如果将一个对象作为值传递而非作为引用传递( 如调用一个函数 func(Complex c1)而非func(Complex &amp;c1) ),则传递时会产生一个临时对象, 这个临时对象在函数结束时也会调用一次析构函数(但不会调用默认构造函数, 因为该临时对象是使用复制构造函数创建的对象)</li>
+<li>一个new动态分配创建的指针如果被delete了, 那么其指向的内存不再是原来的内存, 而是一个未知的区域<br>  因此在一个类中若需要使用指针变量, 需要注意在复制对象时不能把指针指向的地址值赋值给新的对象, 而应为新的对象创建一块内存, 把原指针指向的内存整块地赋值给新的对象( 因此需要定义一个显示的复制构造函数, 而不能用系统默认的只是按值复制的复制构造函数)</li>
+<li>静态成员函数不与特定的对象相关联, 因此该函数只能使用静态成员(属性和函数)</li>
+<li>聚合类(Aggregate class)是一种具有某些性质的类, 结构或联合(union):(聚合也是一种类的关系)<br>  ①所有成员都是公有的<br>  ②没有定义任何构造函数<br>  ③没有类内初始值<br>  ④没有基类和虚函数</li>
+<li>自加(自减)运算符重载:<pre><code class="lang-cpp">  Test&amp; operator++(Test&amp; val){                    //前递增
+      val.a++;
+      return val;
+  }
+  const Test operator++(Test&amp; val,int){    //后递增，int在这里只起到区分作用，没有实际意义
+      Test temp(val);//这里会调用拷贝构造函数进行对象的复制工作
+      val.a++;
+      return temp;
+  }
+</code></pre>
+</li>
+<li>内联函数(inline)默认是static的, 因此可以在头文件中定义然后多个cpp文件中包含, 不会出现重复定义的错误</li>
+<li>C++中的 Interface定义:<br>  当一个类满足以下要求时, 称之为纯接口:<ul>
+<li>只有纯虚函数 (“=0”) 和静态函数 (除了下文提到的析构函数).</li>
+<li>没有非静态数据成员.</li>
+<li>没有定义任何构造函数. 如果有, 也不能带有参数, 并且必须为 protected.</li>
+<li>如果它是一个子类, 也只能从满足上述条件并以 Interface 为后缀的类继承.<br>接口类不能被直接实例化, 因为它声明了纯虚函数. 为确保接口类的所有实现可被正确销毁, 必须为之声明虚析构函数 (作为上述第 1 条规则的特例, 析构函数不能是纯虚函数). 具体细节可参考 Stroustrup 的 The C++ Programming Language, 3rd edition 第 12.4 节.</li>
+</ul>
+</li>
+<li>构造函数调用顺序:<pre><code>  父类成员构造函数 -&gt; 父类构造函数 -&gt; 成员构造函数 -&gt; 构造函数
+</code></pre></li>
+<li>static/friend函数不可加const修饰符, 因为const修饰符只是限定函数是否能够修改this-&gt;*</li>
+<li>new和delete是运算符，不是函数，因此执行效率高</li>
+<li>const常量的初始化必须在声明时或者在构造函数初始化列表中初始化，而不可以在构造函数函数体内初始化</li>
+<li>给成员变量用 mutable (易变的)修饰, 就可以在const成员函数中修改对象的该成员变量了</li>
+<li>一个类中const 限定的成员函数只能由const的该类的对象来调用, 无const限定的成员函数只能由非const的对象来调用</li>
+</ul>
+<h2 id="继承和多态"><a href="#继承和多态" class="headerlink" title="继承和多态"></a>继承和多态</h2><ul>
+<li>类之间的关系有继承(泛化), 关联, 组合和聚合, 其概念和区别如下:<ul>
+<li>继承：指的是一个类（称为子类）继承另外的一个类（称为基类）的功能，并增加它自己的新功能的能力，继承是类与类之间最常见的关系。类图中继承的表示方法是从子类拉出一条闭合的、单键头（或三角形）的实线指向基类。<br>类的继承在C++中呈现为：<pre><code class="lang-cpp">  class B { }
+  class A : public B{ }
+</code></pre>
+</li>
+<li>关联：指的是模型元素之间的一种语义联系，是类之间的一种很弱的联系。关联可以有方向，可以是单向关联，也可以是双向关联。可以给关联加上关联名来描述关联的作用。关联两端的类也可以以某种角色参与关联，角色可以具有多重性，表示可以有多少个对象参与关联。可以通过关联类进一步描述关联的属性、操作以及其他信息。关联类通过一条虚线与关联连接。对于关联可以加上一些约束，以加强关联的含义。<br>类的关联在C++中呈现为：<pre><code class="lang-cpp">  class A{...} 
+  class B{ ...}
+  A::Function1(B &amp;b) 
+  //或A::Function1(B b), A::Function1(B *b) 即一个类作为另一个类方法的参数。
+</code></pre>
+</li>
+<li>聚合：指的是整体与部分的关系。通常在定义一个整体类后，再去分析这个整体类的组成结构。从而找出一些组成类，该整体类和组成类之间就形成了聚合关系。例如一个航母编队包括海空母舰、驱护舰艇、舰载飞机及核动力攻击潜艇等。需求描述中“包含”、“组成”、“分为…部分”等词常意味着聚合关系。<br>类的聚合在C++中呈现为：<pre><code class="lang-cpp">  class A {...} 
+  class B { A* a; .....}
+  // 即类B包含类A的指针；
+</code></pre>
+</li>
+<li>组合：也表示类之间整体和部分的关系，但是组合关系中部分和整体具有统一的生存期。一旦整体对象不存在，部分对象也将不存在。部分对象与整体对象之间具有共生死的关系。<br>类的组合在C++中呈现为：<pre><code class="lang-cpp">  class A{...} 
+  class B{ A a; ...}
+  // 即类B包含类A的对象
+</code></pre>
+注: 聚合和组合的区别在于：聚合关系是“has-a”关系，组合关系是“contains-a”关系；聚合关系表示整体与部分的关系比较弱，而组合比较强；聚合关系中代表部分事物的对象与代表聚合事物的对象的生存期无关，一旦删除了聚合对象不一定就删除了代表部分事物的对象。组合中一旦删除了组合对象，同时也就删除了代表部分事物的对象。聚合的关键在于”聚”, 只是是一些各自独立的东西聚集在一起.<br>关联和聚合的区别主要在语义上，关联的两个对象之间一般是平等的，例如你是我的朋友，聚合则一般不是平等的，例如一个公司包含了很多员工，其实现上是差不多的。聚合和组合的区别则在语义和实现上都有差别，组合的两个对象之间其生命期有很大的关联，被组合的对象是在组合对象创建的同时或者创建之后创建，在组合对象销毁之前销毁。一般来说被组合对象不能脱离组合对象独立存在，而且也只能属于一个组合对象，例如一个文档的版本，必须依赖于文档的存在，也只能属于一个文档。聚合则不一样，被聚合的对象可以属于多个聚合对象，例如一个员工可能可以属于多个公司。</li>
+</ul>
+</li>
+<li>不要使用memset对类的对象进行初始化或放入构造函数, 因为假如类有虚函数或虚继承的话, memset会把虚表指针全部清零, 对类产生破坏</li>
+<li>派生类和基类的重要关系 : 基类指针可以在不进行显式转换的情况下指向派生类对象; 基类引用可以在不进行显式类型转换的情况下引用派生类对象.(向上强制转换)</li>
+<li>注意关键字virtual只用于类方法的声明时, 不用于类方法的定义时</li>
+<li>如果没有关键字virtual, 程序将根据引用类型或指针类型选择方法; 如果使用了virtual, 程序将根据引用或指针指向的对象的类型来选择方法. 假设Brass类和其派生类BrassPlus中都有View函数主程序如下:<pre><code class="lang-cpp">  Brass dom(&quot;Dominic&quot;, 11224);         //Brass是基类
+  BrassPlus dot(&quot;Dorothy&quot;, 12118);   //BrassPlus是派生类
+  Brass &amp; b1_ref = dom;
+  Brass &amp; b2_ref = dot;       // 基类可以随便引用派生类对象(这里 使用指针也毫无区别)
+  b1_ref.View();              // 用Brass类的View()
+  b2_ref.View();              // 这里, 假如View()函数不是虚的, 则用Brass类的View(), 即用引用类型(或指针类型)选择方法
+                            // 假如View()函数是虚的, 则用BrassPlus类的View(), 即根据引用(或指针指向)的对象选择方法
+</code></pre>
+</li>
+<li>如果要在派生类中重新定义的类方法，通常一律声明为虚方法，这样程序将根据对象类型（符合用户需求）而非引用或指针的类型来选择方法。实际上, 仅将需要在派生类中重新定义的方法设为虚方法</li>
+<li>为基类声明一个虚析构函数也是一个惯例, 因为:如果其派生类需要一个析构函数, 在不加virtual声明的情况下, 可能会对派生类的对象调用到基类的析构函数造成错误( 即对派生类使用基类的引用或指针时)</li>
+<li>可以使用一个指针数组来存储指向不同类（基类及其各种派生类）的指针，这样就达到了数组中元素可以各不相同的目的（多态）</li>
+<li>编译器处理虚函数的方法 : 对于每个类, 编译器都创建一个虚函数地址表(数组) . 给类的每个对象添加一个隐藏成员, 隐藏成员中保存了一个指向函数地址数组的指针, 这种数组称为虚函数表, 虚函数表中存储了为类对象进行声明的虚函数的地址。<br>  注意:<ul>
+<li>如果在派生类中未定义新的虚函数, 则该表将保存其基类的表的地址;</li>
+<li>若派生类中重新定义了基类的虚函数, 则用该新函数的地址覆盖掉基类的虚函数的地址;</li>
+<li>若派生类中声明了新的虚函数, 则该函数的地址也会被加进虚函数表中</li>
+</ul>
+</li>
+<li>友元不能是虚函数, 因为友元不是类成员, 只有类成员才能作虚函数</li>
+<li>在派生类中如果重新定义(同名)了基类中的虚函数, 则派生类的对象无法再调用其基类的虚函数, 也就是说(对于派生类对象)基类的该函数被隐藏掉了(即使新的虚函数与基类的虚函数参数表不同也无妨)</li>
+<li>如果基类一个函数声明被重载了, 则应在派生类中重新定义所有的基类版本</li>
+<li>关键字protected和private的区别在派生类中才表现出来, 派生类无法访问基类的private成员但可以访问基类的protected成员</li>
+<li>最好对类的数据成员采用private, 只对某些成员函数才使用protected(如让派生类能访问公众不能使用的内部函数)</li>
+<li>使用作用域解析运算符可以访问基类的方法, 但如果要使用基类对象本身, 则需要使用强制类型转换, 如<pre><code class="lang-cpp">  const string &amp; Student::Name() const {
+      return (cosnt string &amp;) *this ; (这里this是Student类型指针)
+  }
+</code></pre>
+</li>
+<li>通常应使用包含来建立has-a关系(非派生类( ; 如果新类需要访问原有的类保护成员, 或需要重新定义虚函数(派生类), 则应使用私有继承</li>
+<li>使用保护继承时, 基类的共有成员和保护成员都将成为派生类的保护成员</li>
+<li>私有继承和保护继承之间的主要区别主要体现在: 当从派生类再派生出另一个类时, 当前派生类(第二代)使用私有继承则则第一代的共有成员也变成第二代的私有成员了, 第三代类不能访问它们; 然而在第二代类使用保护继承时, 第一代类的公有成员(public)是第二代的保护成员, 第三代仍可以访问</li>
+<li>虚继承<br>  虚基类使得从多个基类相同的类中派生出的对象只继承一个基类对象. 例如, 通过在类声明中使用关键字virtual, 可以使得Worker被用作Singer和Waiter的虚基类(virtual和public次序无关紧要), 即<pre><code class="lang-cpp">  Class Singer : virtual public Worker { }
+  Class Waiter : public virtual Worker { }
+</code></pre>
+  此后, 如果要定义一个以Singer和Waiter为基类的派生类SingingWaiter, 则只需要将其定义为<pre><code class="lang-cpp">  Class SingingWaiter : public Singer, public Waiter {}
+</code></pre>
+  这样SingingWaiter将只包含Worker的一个副本, 而不是各自引入Singer和Waiter中的Worker副本( Singer和Waiter的定义不加virtual则将会各自引入)</li>
+<li>如果一个派生类从两个基类那里分别继承了两个同名函数, 则需要使用域限定符来分别使用这两个函数, 否则无法编译, 会造成二义性</li>
+<li>一般需要在子类中重新定义的函数都应该声明为虚函数, 因为只有这样才能正确地根据调用的对象本身而非一个指针或引用的类型来调用相应的函数</li>
+<li>一个类只初始化它的直接基类, 也只会调用其直接基类的构造函数</li>
+<li>通常using声明只是令某个标识符在当前作用域内可见. 但当在派生类内使用using语句作用于构造函数时(即声明<code>using Base::Base;</code>), 对于基类的每一个构造函数, 编译器都会为派生类生成一个与之对应的(形参列表完全相同的)派生类构造函数. 这些编译器生成的派生类构造函数形如:<pre><code class="lang-cpp">  Derived(parms) : base(args) { }
+</code></pre>
+</li>
+</ul>
+<h2 id="异常"><a href="#异常" class="headerlink" title="异常"></a>异常</h2><ul>
+<li>标准异常 - Logic errors</li>
+</ul>
+<div class="table-container">
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Comment</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>logic_error</td>
+<td>Logic error exception (class )</td>
+</tr>
+<tr>
+<td>domain_error</td>
+<td>Domain error exception (class )</td>
+</tr>
+<tr>
+<td>invalid_argument</td>
+<td>Invalid argument exception (class )</td>
+</tr>
+<tr>
+<td>length_error</td>
+<td>Length error exception (class )</td>
+</tr>
+<tr>
+<td>out_of_range</td>
+<td>Out-of-range exception (class )</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>其中, logic_error又可细分为:</p>
+<div class="table-container">
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Comment</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>domain_error</td>
+<td>Domain error exception (class )</td>
+</tr>
+<tr>
+<td>future_error</td>
+<td>Future error exception (class )</td>
+</tr>
+<tr>
+<td>invalid_argument</td>
+<td>Invalid argument exception (class )</td>
+</tr>
+<tr>
+<td>length_error</td>
+<td>Length error exception (class )</td>
+</tr>
+<tr>
+<td>out_of_range</td>
+<td>Out-of-range exception (class )</td>
+</tr>
+</tbody>
+</table>
+</div>
+<ul>
+<li>标准异常 - Runtime errors</li>
+</ul>
+<div class="table-container">
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Comment</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>runtime_error</td>
+<td>Runtime error exception (class )</td>
+</tr>
+<tr>
+<td>range_error</td>
+<td>Range error exception (class )</td>
+</tr>
+<tr>
+<td>overflow_error</td>
+<td>Overflow error exception (class )</td>
+</tr>
+<tr>
+<td>underflow_error</td>
+<td>Underflow error exception (class )</td>
+</tr>
+<tr>
+<td>bad_alloc</td>
+<td>Exception thrown on failure allocating memory (class )</td>
+</tr>
+<tr>
+<td>bad_cast</td>
+<td>Exception thrown on failure to dynamic cast (class )</td>
+</tr>
+<tr>
+<td>bad_exception</td>
+<td>Exception thrown by unexpected handler (class )</td>
+</tr>
+<tr>
+<td>bad_function_call</td>
+<td>Exception thrown on bad call (class )</td>
+</tr>
+<tr>
+<td>bad_typeid</td>
+<td>Exception thrown on typeid of null pointer (class )</td>
+</tr>
+<tr>
+<td>bad_weak_ptr</td>
+<td>Bad weak pointer (class )</td>
+</tr>
+<tr>
+<td>ios_base::failure</td>
+<td>Base class for stream exceptions (public member class )</td>
+</tr>
+<tr>
+<td>logic_error</td>
+<td>Logic error exception (class )</td>
+</tr>
+<tr>
+<td>runtime_error</td>
+<td>Runtime error exception (class )</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>其中, runtime_error又可细分为:</p>
+<div class="table-container">
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Comment</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>overflow_error</td>
+<td>Overflow error exception (class )</td>
+</tr>
+<tr>
+<td>range_error</td>
+<td>Range error exception (class )</td>
+</tr>
+<tr>
+<td>system_error</td>
+<td>System error exception (class )</td>
+</tr>
+<tr>
+<td>underflow_error</td>
+<td>Underflow error exception (class )</td>
+</tr>
+</tbody>
+</table>
+</div>
+<ul>
+<li><p>继承标准异常exception并允许字符串参数构造函数的自定义异常类:</p>
+<pre><code class="lang-cpp">  class queue_exception : public std::exception {
+  private:
+      std::string msg;    
+  public :
+      queue_exception(const std::string &amp; str) : msg(str){ } 
+      const char * what() const noexcept{
+          return (&quot;queue_exception: &quot; + msg).c_str();
+      }
+
+  };
+</code></pre>
+</li>
+<li>异常的捕获不会调用类型转换, 如<code>throw &#39;a&#39;</code>只有<br>  <code>catch(char c){}</code><br>  能够捕获到, 而<br>  <code>catch(int i){}</code><br>  无法捕获</li>
+<li>捕获异常catch的参数列表中的参数类型最好是引用, 若非引用的话有可能出现对象切割(object slicing), 比如<pre><code>  `throw derived_exception(&quot;asd&quot;);`
+</code></pre>  用<pre><code>  `catch(base_exception e)`
+</code></pre>  来捕获, 则derived_exception中的某些base中没有的函数, 或者是derived_exception中重写的函数无法被使用<br>  而用<pre><code>  `catch(base_exception e)`
+</code></pre>  则可以正常使用这些函数</li>
+<li>抛出异常时, 对于存在析构函数的对象, C++中通过堆栈反解将已经定义的对象进行析构，但是有一个例外就是构造函数中如果出现了异常，那么这会导致已经分配的资源无法回收</li>
+</ul>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/C/" rel="tag"># C++</a>
+          
+            <a href="/tags/Programming-Language/" rel="tag"># Programming Language</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/笔记/C-学习笔记-基本语法/" rel="next" title="C++学习笔记-基本语法">
+                <i class="fa fa-chevron-left"></i> C++学习笔记-基本语法
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/笔记/C-学习笔记-标准模板库和新特性/" rel="prev" title="C++学习笔记-标准模板库和新特性">
+                C++学习笔记-标准模板库和新特性 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">Stardust</p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">17</span>
+                  <span class="site-state-item-name">posts</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                
+                  <span class="site-state-item-count">2</span>
+                  <span class="site-state-item-name">categories</span>
+                
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                
+                  <span class="site-state-item-count">29</span>
+                  <span class="site-state-item-name">tags</span>
+                
+              </div>
+            
+
+          </nav>
+
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#类和对象"><span class="nav-number">1.</span> <span class="nav-text">类和对象</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#继承和多态"><span class="nav-number">2.</span> <span class="nav-text">继承和多态</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#异常"><span class="nav-number">3.</span> <span class="nav-text">异常</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Stardust</span>
+
+  
+</div>
+
+
+  <div class="powered-by">Powered by <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a></div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">Theme &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Muse</a> v5.1.4</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+  
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+          processEscapes: true,
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+        }
+      });
+    </script>
+
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Queue(function() {
+        var all = MathJax.Hub.getAllJax(), i;
+        for (i=0; i < all.length; i += 1) {
+          all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+      });
+    </script>
+    <script type="text/javascript" src="//cdn.bootcss.com/mathjax/2.7.1/latest.js?config=TeX-AMS-MML_HTMLorMML"></script><!-- hexo-inject:begin --><!-- Begin: Injected MathJax -->
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config("");
+</script>
+
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for(i=0; i < all.length; i += 1) {
+      all[i].SourceElement().parentNode.className += ' has-jax';
+    }
+  });
+</script>
+
+<script type="text/javascript" src="//cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+<!-- End: Injected MathJax -->
+<!-- hexo-inject:end -->
+  
+
+
+  
+
+  
+
+</body>
+</html>

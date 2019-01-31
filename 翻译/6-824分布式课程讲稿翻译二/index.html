@@ -1,0 +1,929 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-CN">
+<head><meta name="generator" content="Hexo 3.8.0">
+  <!-- hexo-inject:begin --><!-- hexo-inject:end --><meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css">
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css">
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="Distributed System,MIT 6.824,">
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="原文地址: 6.824 2017 Lecture 2: Infrastructure: RPC and threads 最经常被问到的问题: 为什么用Go?6.824过去使用的是C++, 但学生们总会把时间用在调试Bug而不是分布式系统上(例如释放了还在使用中的对象内存). 而Go能让你集中关注于分布式系统的问题:  很好地支持并发 很好地支持RPC 垃圾回收(不会遇到释放内存的问题) 类型安全(">
+<meta name="keywords" content="Distributed System,MIT 6.824">
+<meta property="og:type" content="article">
+<meta property="og:title" content="MIT 6.824分布式课程讲稿翻译 - Lec 2">
+<meta property="og:url" content="https://stardust-blog.cn/翻译/6-824分布式课程讲稿翻译二/index.html">
+<meta property="og:site_name" content="Stardust&#39;s Blog">
+<meta property="og:description" content="原文地址: 6.824 2017 Lecture 2: Infrastructure: RPC and threads 最经常被问到的问题: 为什么用Go?6.824过去使用的是C++, 但学生们总会把时间用在调试Bug而不是分布式系统上(例如释放了还在使用中的对象内存). 而Go能让你集中关注于分布式系统的问题:  很好地支持并发 很好地支持RPC 垃圾回收(不会遇到释放内存的问题) 类型安全(">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2018-12-21T15:54:44.084Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="MIT 6.824分布式课程讲稿翻译 - Lec 2">
+<meta name="twitter:description" content="原文地址: 6.824 2017 Lecture 2: Infrastructure: RPC and threads 最经常被问到的问题: 为什么用Go?6.824过去使用的是C++, 但学生们总会把时间用在调试Bug而不是分布式系统上(例如释放了还在使用中的对象内存). 而Go能让你集中关注于分布式系统的问题:  很好地支持并发 很好地支持RPC 垃圾回收(不会遇到释放内存的问题) 类型安全(">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="https://stardust-blog.cn/翻译/6-824分布式课程讲稿翻译二/">
+
+
+
+
+
+  <title>MIT 6.824分布式课程讲稿翻译 - Lec 2 | Stardust's Blog</title><!-- hexo-inject:begin --><!-- hexo-inject:end -->
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope="" itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <!-- hexo-inject:begin --><!-- hexo-inject:end --><div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope="" itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Stardust's Blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">Live in thinking</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br>
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br>
+            
+            Archives
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://stardust-blog.cn/翻译/6-824分布式课程讲稿翻译二/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Stardust">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Stardust's Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">MIT 6.824分布式课程讲稿翻译 - Lec 2</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2017-12-18T16:16:08+08:00">
+                2017-12-18
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/翻译/" itemprop="url" rel="index">
+                    <span itemprop="name">翻译</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>原文地址: <a href="https://pdos.csail.mit.edu/6.824/notes/l-rpc.txt" target="_blank" rel="noopener">6.824 2017 Lecture 2: Infrastructure: RPC and threads</a></p>
+<h2 id="最经常被问到的问题-为什么用Go"><a href="#最经常被问到的问题-为什么用Go" class="headerlink" title="最经常被问到的问题: 为什么用Go?"></a>最经常被问到的问题: 为什么用Go?</h2><p>6.824过去使用的是C++, 但学生们总会把时间用在调试Bug而不是分布式系统上(例如释放了还在使用中的对象内存).</p>
+<p>而Go能让你集中关注于分布式系统的问题:</p>
+<ul>
+<li>很好地支持并发</li>
+<li>很好地支持RPC</li>
+<li>垃圾回收(不会遇到释放内存的问题)</li>
+<li>类型安全(type safe)</li>
+</ul>
+<p>同时我们也喜欢Go编程, 因为:</p>
+<ul>
+<li>简单易学</li>
+<li>我们重新设计实验时, 还是一门很潮的语言</li>
+</ul>
+<p>至于教程, 建议看<a href="https://golang.org/doc/effective_go.html" target="_blank" rel="noopener">Effective Go</a></p>
+<h2 id="线程-Threads"><a href="#线程-Threads" class="headerlink" title="线程(Threads)"></a>线程(Threads)</h2><p>线程是一种很有用的结构化工具<br>Go把它们称为goroutines, 一般地都叫做线程<br>线程有很多使用技巧(tricky)</p>
+<h3 id="为什么用线程"><a href="#为什么用线程" class="headerlink" title="为什么用线程"></a>为什么用线程</h3><ul>
+<li>允许并发执行, 在分布式系统中是很常见的</li>
+<li>I/O并发(I/O concurrency): 从其他服务器等待回复时, 先处理下一个请求</li>
+<li>多核(Multicore): 多个线程在多个核上并行执行</li>
+</ul>
+<h3 id="线程-“执行线程”"><a href="#线程-“执行线程”" class="headerlink" title="线程 = “执行线程”"></a>线程 = “执行线程”</h3><p>线程能让一个程序(逻辑上)同时做多件事<br>这些线程共享内存<br>每个线程包含某些线程相关(per-thread)的状态: 程序计数器(program counter), 寄存器, 栈</p>
+<h3 id="一个程序中有多少线程"><a href="#一个程序中有多少线程" class="headerlink" title="一个程序中有多少线程"></a>一个程序中有多少线程</h3><p>应用程序有多少用处, 就有多少线程.<br>Go鼓励使用者创建多个线程:</p>
+<ul>
+<li>通常线程要比核数多</li>
+<li>Go执行器会在可用的核上调度这些线程</li>
+</ul>
+<p>Go线程是有开销的, 但你可以当做没有.<br>创建一个线程比调用一个函数开销大.</p>
+<h3 id="线程带来的问题"><a href="#线程带来的问题" class="headerlink" title="线程带来的问题"></a>线程带来的问题</h3><ul>
+<li>共享数据(sharing data)<br>  一个线程读取另一个线程正在修改的数据?<br>  这样会导致竞争条件(race condition)<br>  -&gt; 不要共享数据, 或同步共享的数据(如使用Mutex)</li>
+<li>线程间协作(coordination between threads)<br>  例如等待所有Map线程完成<br>  可能导致死锁(一般来说比数据竞争更容易发现)<br>  -&gt; 使用Go的channel或WaitGroup</li>
+<li>并发粒度(granularity of concurrency)<br>  粗粒度 -&gt; 简单, 但并发/并行效率低<br>  细粒度 -&gt; 高并发, 但带来更多的竞争和死锁</li>
+</ul>
+<h3 id="爬虫练习-两个难点"><a href="#爬虫练习-两个难点" class="headerlink" title="爬虫练习: 两个难点"></a>爬虫练习: 两个难点</h3><ul>
+<li>安排I/O并发<br>  获取一个URL的同时, 处理其他URL</li>
+<li>每个URL只<em>获取一次</em><br>  以便减少浪费的带宽<br>  对(被爬取的)远程服务器更友好<br>  =&gt; 需要使用某些工具来实时记录已经爬过得URL</li>
+<li>[在不同的核上处理不同的URL]</li>
+</ul>
+<h4 id="解决方案-见crawler-go"><a href="#解决方案-见crawler-go" class="headerlink" title="解决方案(见crawler.go)"></a>解决方案(见<a href="https://pdos.csail.mit.edu/6.824/notes/crawler.go" target="_blank" rel="noopener">crawler.go</a>)</h4><ul>
+<li>减少深度 — 使用一个fetched的map数据结构(来记录已爬取URL)</li>
+<li>串行执行的方案:<ul>
+<li>将fetched map传入递归调用</li>
+<li>IO没有重叠(overlap), 因此fetcher处理时间长</li>
+<li>不使用多核</li>
+</ul>
+</li>
+<li>使用go routine和共享的fetched map的方案<ul>
+<li>每个URL创建一个线程<br>  如果我们不传u进去会发生什么(数据竞争)</li>
+<li>为什么要用锁? (即便把它们去掉也是可以正常工作的!)<ul>
+<li>如果没有锁会出现什么错误?<br>  检查和标记URL操作就不是原子性的了<br>  因此有可能会重复爬取同一个URL.<br>  例如, T1检查了fetched[url], 同时T2也检查了fetched[url]<br>  两者都发现这个url没有爬取过<br>  因此两者都会开始爬取, 这样就出错了</li>
+<li>这种情况称为一个<em>竞争条件</em>(race condition)<br>  这个Bug只在某些线程交叉的时候出现<br>  很难发现, 也难以解释</li>
+<li>go可以自动检测竞争(<code>go run -race crawler.go</code>)</li>
+<li>注意检查和标记URL的操作必须是原子性的</li>
+</ul>
+</li>
+<li>处理一个页面时, 怎么确定我们处理完成?<br>  WaitGroup</li>
+</ul>
+</li>
+<li>使用channel的方案<ul>
+<li>Channel: 同步多线程的常用手段<br>  可以看做是一个bounded-buffer的消息体(bounded-buffer of messages)<br>  多个线程可以对channel接收或发送值</li>
+<li>发送和接收操作在下面两种情况阻塞:<ul>
+<li>channel满了(channel is full)</li>
+<li>channel是空的(channel is empty)</li>
+</ul>
+</li>
+<li>通过一个Master线程来分配各个url<br>  fetched map不会出现竞争, 因为它不是共享的!</li>
+</ul>
+</li>
+</ul>
+<h4 id="怎样才是最好的解决方案"><a href="#怎样才是最好的解决方案" class="headerlink" title="怎样才是最好的解决方案?"></a>怎样才是最好的解决方案?</h4><pre><code>- 所有并发的方案都远比串行方案难
+- 有些Go设计者认为不应该使用共享内存
+    也就是说一律只使用channel
+- 我们的实验中用到了许多并发特性:
+    - 共享内存用锁
+        如多个服务线程共享一个map
+    - 线程间同步用channel
+        如生产者/消费者风格的并发
+- 使用Go的race detector:
+    https://golang.org/doc/articles/race_detector.html
+    go test -race mypkg
+</code></pre><h2 id="远程方法调用-Remote-Procedure-Call-RPC"><a href="#远程方法调用-Remote-Procedure-Call-RPC" class="headerlink" title="远程方法调用(Remote Procedure Call, RPC)"></a>远程方法调用(Remote Procedure Call, RPC)</h2><ul>
+<li>分布式系统中的关键部分, 所有实验都用到了RPC</li>
+<li>使用目的: <ul>
+<li>易于编程的网络通信</li>
+<li>隐藏了很多客户端/服务端的通信细节</li>
+<li>客户端调用类似通常的函数调用</li>
+<li>服务端处理类似通常的函数</li>
+</ul>
+</li>
+<li>RPC的使用非常广泛!</li>
+</ul>
+<p>理想情况下RPC让网络通信就像fn调用一样:</p>
+<pre><code>Client:
+    z = fn(x, y)
+
+Server:
+    fn(x, y) {
+        compute
+        return z
+    }
+</code></pre><p>RPC目的就是为了达到这种程度的透明.</p>
+<h3 id="Go示例-kv-go"><a href="#Go示例-kv-go" class="headerlink" title="Go示例: kv.go"></a>Go示例: <a href="https://pdos.csail.mit.edu/6.824/notes/kv.go" target="_blank" rel="noopener">kv.go</a></h3><h3 id="RPC消息图示"><a href="#RPC消息图示" class="headerlink" title="RPC消息图示"></a>RPC消息图示</h3><pre><code>  Client             Server
+    request---&gt;
+       &lt;---response
+</code></pre><h3 id="软件架构"><a href="#软件架构" class="headerlink" title="软件架构"></a>软件架构</h3><pre><code>  client app         handlers
+    stubs           dispatcher
+   RPC lib           RPC lib
+     net  ------------ net
+</code></pre><h3 id="一些细节"><a href="#一些细节" class="headerlink" title="一些细节"></a>一些细节</h3><ul>
+<li>调用由服务器的哪个函数处理?<br>  Go语言中可以在Call()的参数中制定</li>
+<li>序列化: 将数据格式化为数据包<br>  数组, 指针, 对象等等都能很巧妙地处理<br>  可以看到Go的RPC库非常强大!<br>  但有些类型还是不能传: 例如channel, 函数</li>
+<li>绑定: 客户端怎么知道和谁通信?<br>  可以是客户端提供了服务器端的主机名<br>  可能是某个命名服务(name service)将服务器名映射到某个主机</li>
+</ul>
+<h3 id="RPC可能会出现哪些问题"><a href="#RPC可能会出现哪些问题" class="headerlink" title="RPC可能会出现哪些问题?"></a>RPC可能会出现哪些问题?</h3><p>例如: 丢包, 网络中断, 服务器慢, 服务器宕机</p>
+<h3 id="服务器的错误对于客户端的RPC库来说是怎么样的"><a href="#服务器的错误对于客户端的RPC库来说是怎么样的" class="headerlink" title="服务器的错误对于客户端的RPC库来说是怎么样的?"></a>服务器的错误对于客户端的RPC库来说是怎么样的?</h3><ul>
+<li>客户端收不到服务端的回复</li>
+<li>客户端<strong>不知道</strong>服务器有没有收到请求<br>  因为可能是服务端或网络在发送回复前发生了错误</li>
+</ul>
+<h3 id="最简化模型-“at-least-once”"><a href="#最简化模型-“at-least-once”" class="headerlink" title="最简化模型: “at least once”"></a>最简化模型: “at least once”</h3><ol>
+<li>RPC库等一段时间内的回复</li>
+<li>如果没有回复, 那就重发请求</li>
+<li>重复若干次这个操作</li>
+<li>如果依然没有回复, 就向应用返回错误</li>
+</ol>
+<ul>
+<li>Q: “at least once”适用于所有应用吗?<br>  不, “at least once”存在一个明显的问题: 如客户端发送”从银行账户减$10”</li>
+<li>Q: 这样的话客户端程序会出什么问题?<br>  Put(“k”, 10) — 写一个Key值的RPC请求<br>  Put(“k”, 20) — 然后客户端又对同一个Key写了一次<br>  第二个RPC先到服务端, 第一个后到, 导致写入了旧值</li>
+<li>Q: 那”at least once”还能用吗?<br>  可以: 如果重复操作没问题的话, 例如只读操作<br>  可以: 如果应用自己可以处理重复写的问题, 在实验1中就需要这样</li>
+</ul>
+<h3 id="更好的RPC模型-“at-most-once”"><a href="#更好的RPC模型-“at-most-once”" class="headerlink" title="更好的RPC模型: “at most once”"></a>更好的RPC模型: “at most once”</h3><p>思路: 服务端RPC代码自动检测重复的请求, 对于重复的请求直接返回上一次的结果, 而不是重新执行</p>
+<ul>
+<li>Q: 怎么检测重复请求?<br>  客户端需要在请求中包含一个唯一的ID(XID), 重复发送请求时使用同一个XID<br>  服务器端:<pre><code>  if seen[xid]:
+    r = old[xid]
+  else
+    r = handler()
+    old[xid] = r
+    seen[xid] = true
+</code></pre></li>
+</ul>
+<h3 id="“at-most-once”的难点"><a href="#“at-most-once”的难点" class="headerlink" title="“at most once”的难点"></a>“at most once”的难点</h3><p>这些难点会在实验3及后续实验会出现</p>
+<ul>
+<li>如何保证XID是唯一的?<ul>
+<li>大随机整数?</li>
+<li>使用唯一客户端ID(IP地址?)+序列号?</li>
+</ul>
+</li>
+<li>服务器必须忽略旧的RPC请求<br>  如何能够安全地忽略?<ul>
+<li>一种思路:<ul>
+<li>唯一客户端ID</li>
+<li>客户端唯一的RPC序列号</li>
+<li>客户端在每个RPC请求中包含”已经收到了序列号&lt;=X的回复”</li>
+<li>很类似于TCP的序列号和ack包</li>
+</ul>
+</li>
+<li>每次只允许客户端有一个未完成的RPC:<br>  收到序号seq+1的请求时, 服务器就忽略所有&lt;=seq的请求</li>
+<li>客户端能够只保持5分钟的重试时间:<br>  服务端可以忽略已经超过5分钟的请求</li>
+</ul>
+</li>
+<li>当一个请求还没处理完时, 如何处理重复请求?<br>  服务器端此时还不知道如何回复, 也不想执行两次<br>  思路:<ul>
+<li>在每个RPC回复中加一个”pending”标志</li>
+<li>继续等待或忽略</li>
+</ul>
+</li>
+<li>如果一台”at most once”服务器宕机并重启了怎么办?<br>  如果内存中的信息丢失了, 服务器重启后会忘记重复的请求并接受处理这些请求. <ul>
+<li>可能需要把这些重复请求的数据写入磁盘?</li>
+<li>可能备机也需要备份这些重复数据?</li>
+</ul>
+</li>
+<li>“exactly once”怎么样?<br>  等于”at most once” + 无限次重试 + 容错服务</li>
+</ul>
+<h3 id="Go-RPC使用的是”at-most-once”"><a href="#Go-RPC使用的是”at-most-once”" class="headerlink" title="Go RPC使用的是”at-most-once”"></a>Go RPC使用的是”at-most-once”</h3><ol>
+<li>打开TCP连接</li>
+<li>将请求写入TCP连接</li>
+<li>TCP可能会重传, 但服务端的TCP会过滤重复包</li>
+<li>Go RPC代码不会重试(不会创建第二个TCP连接)</li>
+<li>如果没有接收到回复, Go RPC代码会向应用返回错误</li>
+</ol>
+<ul>
+<li>可能是由于(TCP)超时</li>
+<li>可能是服务端没有收到请求</li>
+<li>可能是服务端处理了请求, 但在回复包传达之前服务器/网络出错</li>
+</ul>
+<p>Go RPC的”at-most-once”对于实验1不够用, 因为它只发送一次单独的RPC请求<br>而在MapReduce模型中, 如果Worker不回应, Master会重新发送给其他Worker. 但原来的Worker可能没有出错, 而是仍然在处理这个请求.<br>Go RPC不能检测出这种重复的情况, 这在实验1中没问题, 可以在应用层处理.<br>实验3中会显式地检测重复请求.</p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Distributed-System/" rel="tag"># Distributed System</a>
+          
+            <a href="/tags/MIT-6-824/" rel="tag"># MIT 6.824</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/翻译/6-824分布式课程讲稿翻译-Lab1/" rel="next" title="6.824分布式课程讲稿翻译 - Lab1 MapReduce">
+                <i class="fa fa-chevron-left"></i> 6.824分布式课程讲稿翻译 - Lab1 MapReduce
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/笔记/GFS论文学习笔记/" rel="prev" title="Google File System(GFS)论文学习笔记">
+                Google File System(GFS)论文学习笔记 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">Stardust</p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">17</span>
+                  <span class="site-state-item-name">posts</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                
+                  <span class="site-state-item-count">2</span>
+                  <span class="site-state-item-name">categories</span>
+                
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                
+                  <span class="site-state-item-count">29</span>
+                  <span class="site-state-item-name">tags</span>
+                
+              </div>
+            
+
+          </nav>
+
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#最经常被问到的问题-为什么用Go"><span class="nav-number">1.</span> <span class="nav-text">最经常被问到的问题: 为什么用Go?</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#线程-Threads"><span class="nav-number">2.</span> <span class="nav-text">线程(Threads)</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#为什么用线程"><span class="nav-number">2.1.</span> <span class="nav-text">为什么用线程</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#线程-“执行线程”"><span class="nav-number">2.2.</span> <span class="nav-text">线程 = “执行线程”</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#一个程序中有多少线程"><span class="nav-number">2.3.</span> <span class="nav-text">一个程序中有多少线程</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#线程带来的问题"><span class="nav-number">2.4.</span> <span class="nav-text">线程带来的问题</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#爬虫练习-两个难点"><span class="nav-number">2.5.</span> <span class="nav-text">爬虫练习: 两个难点</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#解决方案-见crawler-go"><span class="nav-number">2.5.1.</span> <span class="nav-text">解决方案(见crawler.go)</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#怎样才是最好的解决方案"><span class="nav-number">2.5.2.</span> <span class="nav-text">怎样才是最好的解决方案?</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#远程方法调用-Remote-Procedure-Call-RPC"><span class="nav-number">3.</span> <span class="nav-text">远程方法调用(Remote Procedure Call, RPC)</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Go示例-kv-go"><span class="nav-number">3.1.</span> <span class="nav-text">Go示例: kv.go</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#RPC消息图示"><span class="nav-number">3.2.</span> <span class="nav-text">RPC消息图示</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#软件架构"><span class="nav-number">3.3.</span> <span class="nav-text">软件架构</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#一些细节"><span class="nav-number">3.4.</span> <span class="nav-text">一些细节</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#RPC可能会出现哪些问题"><span class="nav-number">3.5.</span> <span class="nav-text">RPC可能会出现哪些问题?</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#服务器的错误对于客户端的RPC库来说是怎么样的"><span class="nav-number">3.6.</span> <span class="nav-text">服务器的错误对于客户端的RPC库来说是怎么样的?</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#最简化模型-“at-least-once”"><span class="nav-number">3.7.</span> <span class="nav-text">最简化模型: “at least once”</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#更好的RPC模型-“at-most-once”"><span class="nav-number">3.8.</span> <span class="nav-text">更好的RPC模型: “at most once”</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#“at-most-once”的难点"><span class="nav-number">3.9.</span> <span class="nav-text">“at most once”的难点</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Go-RPC使用的是”at-most-once”"><span class="nav-number">3.10.</span> <span class="nav-text">Go RPC使用的是”at-most-once”</span></a></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Stardust</span>
+
+  
+</div>
+
+
+  <div class="powered-by">Powered by <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a></div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">Theme &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Muse</a> v5.1.4</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+  
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+          processEscapes: true,
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+        }
+      });
+    </script>
+
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Queue(function() {
+        var all = MathJax.Hub.getAllJax(), i;
+        for (i=0; i < all.length; i += 1) {
+          all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+      });
+    </script>
+    <script type="text/javascript" src="//cdn.bootcss.com/mathjax/2.7.1/latest.js?config=TeX-AMS-MML_HTMLorMML"></script><!-- hexo-inject:begin --><!-- Begin: Injected MathJax -->
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config("");
+</script>
+
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for(i=0; i < all.length; i += 1) {
+      all[i].SourceElement().parentNode.className += ' has-jax';
+    }
+  });
+</script>
+
+<script type="text/javascript" src="//cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+<!-- End: Injected MathJax -->
+<!-- hexo-inject:end -->
+  
+
+
+  
+
+  
+
+</body>
+</html>

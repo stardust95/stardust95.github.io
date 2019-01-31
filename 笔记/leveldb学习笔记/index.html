@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-CN">
+<head><meta name="generator" content="Hexo 3.8.0">
+  <!-- hexo-inject:begin --><!-- hexo-inject:end --><meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css">
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css">
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="Storage,LSM Tree,leveldb,Algorithm,">
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="leveldb学习笔记Log-Structured Merge-Tree（LSM Tree）背景简单的说，LSM Tree通过消去随机的本地写操作，来提供比传统B+树或者ISAM更好的写操作吞吐量。  如图所示，磁盘的顺序读写和随机读写存在巨大的差距，甚至顺序读写磁盘（无论是SATA还是SSD）都快于随机读写内存，而且至少快三个数量级，这说明我们要避免随机读写，尽量设计成顺序读写。 数据结构LSM">
+<meta name="keywords" content="Storage,LSM Tree,leveldb,Algorithm">
+<meta property="og:type" content="article">
+<meta property="og:title" content="leveldb学习笔记">
+<meta property="og:url" content="https://stardust-blog.cn/笔记/leveldb学习笔记/index.html">
+<meta property="og:site_name" content="Stardust&#39;s Blog">
+<meta property="og:description" content="leveldb学习笔记Log-Structured Merge-Tree（LSM Tree）背景简单的说，LSM Tree通过消去随机的本地写操作，来提供比传统B+树或者ISAM更好的写操作吞吐量。  如图所示，磁盘的顺序读写和随机读写存在巨大的差距，甚至顺序读写磁盘（无论是SATA还是SSD）都快于随机读写内存，而且至少快三个数量级，这说明我们要避免随机读写，尽量设计成顺序读写。 数据结构LSM">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="https://stardust-blog.cn/笔记/leveldb学习笔记/随机顺序IO对比.png">
+<meta property="og:image" content="https://stardust-blog.cn/笔记/leveldb学习笔记/多页块的结构及其结点的结构.png">
+<meta property="og:updated_time" content="2018-12-21T16:01:18.674Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="leveldb学习笔记">
+<meta name="twitter:description" content="leveldb学习笔记Log-Structured Merge-Tree（LSM Tree）背景简单的说，LSM Tree通过消去随机的本地写操作，来提供比传统B+树或者ISAM更好的写操作吞吐量。  如图所示，磁盘的顺序读写和随机读写存在巨大的差距，甚至顺序读写磁盘（无论是SATA还是SSD）都快于随机读写内存，而且至少快三个数量级，这说明我们要避免随机读写，尽量设计成顺序读写。 数据结构LSM">
+<meta name="twitter:image" content="https://stardust-blog.cn/笔记/leveldb学习笔记/随机顺序IO对比.png">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="https://stardust-blog.cn/笔记/leveldb学习笔记/">
+
+
+
+
+
+  <title>leveldb学习笔记 | Stardust's Blog</title><!-- hexo-inject:begin --><!-- hexo-inject:end -->
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope="" itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <!-- hexo-inject:begin --><!-- hexo-inject:end --><div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope="" itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Stardust's Blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">Live in thinking</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br>
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br>
+            
+            Archives
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://stardust-blog.cn/笔记/leveldb学习笔记/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Stardust">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Stardust's Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">leveldb学习笔记</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2018-07-11T21:13:54+08:00">
+                2018-07-11
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/笔记/" itemprop="url" rel="index">
+                    <span itemprop="name">笔记</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h1 id="leveldb学习笔记"><a href="#leveldb学习笔记" class="headerlink" title="leveldb学习笔记"></a>leveldb学习笔记</h1><h2 id="Log-Structured-Merge-Tree（LSM-Tree）"><a href="#Log-Structured-Merge-Tree（LSM-Tree）" class="headerlink" title="Log-Structured Merge-Tree（LSM Tree）"></a>Log-Structured Merge-Tree（LSM Tree）</h2><h3 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h3><p>简单的说，LSM Tree通过消去随机的本地写操作，来提供比传统B+树或者<a href="https://zh.wikipedia.org/wiki/ISAM" target="_blank" rel="noopener">ISAM</a>更好的写操作吞吐量。</p>
+<img src="/笔记/leveldb学习笔记/随机顺序IO对比.png">
+<p>如图所示，磁盘的顺序读写和随机读写存在巨大的差距，甚至顺序读写磁盘（无论是SATA还是SSD）都快于随机读写内存，而且至少快三个数量级，这说明我们要避免随机读写，尽量设计成顺序读写。</p>
+<h3 id="数据结构"><a href="#数据结构" class="headerlink" title="数据结构"></a>数据结构</h3><pre><code>LSM-Tree
+- Memory: C0 Tree(任何方便键值查找的数据结构)
+- Disk: C1 Tree(SB-Tree)
+</code></pre><h4 id="基本思路"><a href="#基本思路" class="headerlink" title="基本思路"></a>基本思路</h4><p>当插入一条新的数据条目时，首先会向 <strong>日志文件</strong> 中写入插入操作的日志，为以后的恢复做准备。<br>然后将根据新条目的索引值将新条目插入到C0中。<br>将新条目插入内存的C0中，不需要任何与硬盘的I/O操作，<br>但内存的存储代价比硬盘的要高上不少，因此当C0的大小达到某一阈值时，内存存储的代价会比硬盘的I/O操作和存储代价还高。<br>故每当C0的大小接近其阈值时，将有一部分的条目从C0滚动合并到硬盘中的C1，以减少C0的大小，降低内存存储数据的代价。</p>
+<h4 id="C1-结构"><a href="#C1-结构" class="headerlink" title="C1 结构"></a>C1 结构</h4><p>C1的结构与B-tree相似，但其结点中的条目是满的，结点的大小为一页（page cache的一个单元），树根之下的所有单页结点合并到 <strong>地址连续的多页块</strong> 中。<br>C1中经常被访问的结点也将会被缓存在内存中。</p>
+<img src="/笔记/leveldb学习笔记/多页块的结构及其结点的结构.png">
+<p>如图所示。J-1层结点包含连续的指向J层结点（node1，node2，…nodeK）的指针（P1，P2，…，PK）和分割指针的键（S1，S2，…，SK-1）。J层结点连续存放在多页块的K页中，并且不必按照键的大小排列。如果J层的两个结点存放于同一个多页块中，那这两个结点的键值之间的所有结点也存放在多页块中。M是多页块分割的标记，表示直到下一个M标记或空结点之内的所有后续结点都存放在同一个多页块中。M中包含了多页块开始的硬盘页号和多页块中结点的数量。树根始终是以一个单页存储的。可以看出多页块可用于范围检索，而多页块中结点可用于精确的键值匹配的检索。</p>
+<h4 id="合并过程"><a href="#合并过程" class="headerlink" title="合并过程"></a>合并过程</h4><p>假设C0也是一种B-tree，设想在滚动合并时，C0和C1都有一个指向相等键值的游标，游标指向下一个将要合并的叶子结点中的条目。从根结点到达这个位置的路径将C1上所有正在进行滚动合并的多页块分成两部分。一部分是游标还未到达的结点，合并时读入清空块（emptying block），另一部分是游标已经过的结点，即滚动合并的结果，合并时写入填充块（filling block）。这样的过程如下：</p>
+<p>从C1中读入未合并的叶子结点，存储于内存的清空块中；<br>从C0中读取叶子结点，并与清空块中的叶子结点进行合并排序；<br>将合并排序的结果写入填充块中，并从C0中删除用于合并排序的旧叶子结点；<br>不断地重复步骤2和3，当填充块被合并排序的结果填满时，将填充块追加到硬盘的新位置，并从C1中删除用于合并排序的旧叶子结点，当清空块被全部读取完时，再从C1中读入未合并的叶子结点；<br>当C0和C1的所有叶子节点都被读入内存进行合并，并产生新的叶子结点之后，C0和C1的一次滚动合并就结束了。</p>
+<h3 id="比较"><a href="#比较" class="headerlink" title="比较"></a>比较</h3><h2 id="leveldb"><a href="#leveldb" class="headerlink" title="leveldb"></a>leveldb</h2><h3 id="整体架构"><a href="#整体架构" class="headerlink" title="整体架构"></a>整体架构</h3><h3 id="Oplog结构分析"><a href="#Oplog结构分析" class="headerlink" title="Oplog结构分析"></a>Oplog结构分析</h3><h3 id="memtable结构分析"><a href="#memtable结构分析" class="headerlink" title="memtable结构分析"></a>memtable结构分析</h3><h3 id="sstable结构分析"><a href="#sstable结构分析" class="headerlink" title="sstable结构分析"></a>sstable结构分析</h3><h3 id="版本管理"><a href="#版本管理" class="headerlink" title="版本管理"></a>版本管理</h3>
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Storage/" rel="tag"># Storage</a>
+          
+            <a href="/tags/LSM-Tree/" rel="tag"># LSM Tree</a>
+          
+            <a href="/tags/leveldb/" rel="tag"># leveldb</a>
+          
+            <a href="/tags/Algorithm/" rel="tag"># Algorithm</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/笔记/磁盘分区知识笔记/" rel="next" title="磁盘分区知识笔记">
+                <i class="fa fa-chevron-left"></i> 磁盘分区知识笔记
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">Stardust</p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">19</span>
+                  <span class="site-state-item-name">posts</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                
+                  <span class="site-state-item-count">2</span>
+                  <span class="site-state-item-name">categories</span>
+                
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                
+                  <span class="site-state-item-count">27</span>
+                  <span class="site-state-item-name">tags</span>
+                
+              </div>
+            
+
+          </nav>
+
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#leveldb学习笔记"><span class="nav-number">1.</span> <span class="nav-text">leveldb学习笔记</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Log-Structured-Merge-Tree（LSM-Tree）"><span class="nav-number">1.1.</span> <span class="nav-text">Log-Structured Merge-Tree（LSM Tree）</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#背景"><span class="nav-number">1.1.1.</span> <span class="nav-text">背景</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#数据结构"><span class="nav-number">1.1.2.</span> <span class="nav-text">数据结构</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#基本思路"><span class="nav-number">1.1.2.1.</span> <span class="nav-text">基本思路</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#C1-结构"><span class="nav-number">1.1.2.2.</span> <span class="nav-text">C1 结构</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#合并过程"><span class="nav-number">1.1.2.3.</span> <span class="nav-text">合并过程</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#比较"><span class="nav-number">1.1.3.</span> <span class="nav-text">比较</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#leveldb"><span class="nav-number">1.2.</span> <span class="nav-text">leveldb</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#整体架构"><span class="nav-number">1.2.1.</span> <span class="nav-text">整体架构</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Oplog结构分析"><span class="nav-number">1.2.2.</span> <span class="nav-text">Oplog结构分析</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#memtable结构分析"><span class="nav-number">1.2.3.</span> <span class="nav-text">memtable结构分析</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#sstable结构分析"><span class="nav-number">1.2.4.</span> <span class="nav-text">sstable结构分析</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#版本管理"><span class="nav-number">1.2.5.</span> <span class="nav-text">版本管理</span></a></li></ol></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2018</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Stardust</span>
+
+  
+</div>
+
+
+  <div class="powered-by">Powered by <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a></div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">Theme &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Muse</a> v5.1.4</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script><!-- hexo-inject:begin --><!-- Begin: Injected MathJax -->
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config("");
+</script>
+
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for(i=0; i < all.length; i += 1) {
+      all[i].SourceElement().parentNode.className += ' has-jax';
+    }
+  });
+</script>
+
+<script type="text/javascript" src="//cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+<!-- End: Injected MathJax -->
+<!-- hexo-inject:end -->
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

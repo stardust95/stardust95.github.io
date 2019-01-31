@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-CN">
+<head><meta name="generator" content="Hexo 3.8.0">
+  <!-- hexo-inject:begin --><!-- hexo-inject:end --><meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css">
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css">
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="Distributed System,Paxos,GFS,Chubby,">
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="Google Chubby([ˈtʃʌbi])是一个面向松耦合分布式系统的锁服务，被GFS、Big Table等系统用于解决分布式同步、元数据存储和Master选举等一系列与分布式锁相关的问题。 Chubby底层一致性实现是以Paxos算法为基础的。 概述一个分布式锁的目的是使得各个客户端进程同步彼此的操作，对当前系统的基本状态信息达成一致。为此，Chubby提供了粗粒度的分布式锁服务(coars">
+<meta name="keywords" content="Distributed System,Paxos,GFS,Chubby">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Chubby论文学习笔记">
+<meta property="og:url" content="https://stardust-blog.cn/笔记/Chubby论文学习笔记/index.html">
+<meta property="og:site_name" content="Stardust&#39;s Blog">
+<meta property="og:description" content="Google Chubby([ˈtʃʌbi])是一个面向松耦合分布式系统的锁服务，被GFS、Big Table等系统用于解决分布式同步、元数据存储和Master选举等一系列与分布式锁相关的问题。 Chubby底层一致性实现是以Paxos算法为基础的。 概述一个分布式锁的目的是使得各个客户端进程同步彼此的操作，对当前系统的基本状态信息达成一致。为此，Chubby提供了粗粒度的分布式锁服务(coars">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="https://stardust-blog.cn/笔记/Chubby论文学习笔记/Figure1.png">
+<meta property="og:updated_time" content="2018-12-21T15:59:08.842Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Chubby论文学习笔记">
+<meta name="twitter:description" content="Google Chubby([ˈtʃʌbi])是一个面向松耦合分布式系统的锁服务，被GFS、Big Table等系统用于解决分布式同步、元数据存储和Master选举等一系列与分布式锁相关的问题。 Chubby底层一致性实现是以Paxos算法为基础的。 概述一个分布式锁的目的是使得各个客户端进程同步彼此的操作，对当前系统的基本状态信息达成一致。为此，Chubby提供了粗粒度的分布式锁服务(coars">
+<meta name="twitter:image" content="https://stardust-blog.cn/笔记/Chubby论文学习笔记/Figure1.png">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="https://stardust-blog.cn/笔记/Chubby论文学习笔记/">
+
+
+
+
+
+  <title>Chubby论文学习笔记 | Stardust's Blog</title><!-- hexo-inject:begin --><!-- hexo-inject:end -->
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope="" itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <!-- hexo-inject:begin --><!-- hexo-inject:end --><div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope="" itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Stardust's Blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">Live in thinking</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br>
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br>
+            
+            Archives
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://stardust-blog.cn/笔记/Chubby论文学习笔记/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Stardust">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Stardust's Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">Chubby论文学习笔记</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2018-04-21T16:48:39+08:00">
+                2018-04-21
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/笔记/" itemprop="url" rel="index">
+                    <span itemprop="name">笔记</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>Google Chubby([ˈtʃʌbi])是一个面向松耦合<strong>分布式系统的锁</strong>服务，被GFS、Big Table等系统用于解决<em>分布式同步、元数据存储和Master选举</em>等一系列与分布式锁相关的问题。</p>
+<p>Chubby底层一致性实现是<strong>以Paxos算法为基础</strong>的。</p>
+<h1 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h1><p>一个分布式锁的目的是使得各个客户端进程同步彼此的操作，对当前系统的基本状态信息达成一致。为此，Chubby提供了<strong>粗粒度</strong>的分布式锁服务(coarse-grained locking)。</p>
+<p>Chubby的客户端接口设计非常类似于UNIX文件系统，应用不仅能对Chubby服务器上的整个文件进行读写，还可以添加对<em>文件节点</em>的锁控制，并能<strong>订阅</strong>Chubby服务端发出的一些文件变动的事件。</p>
+<h1 id="设计目标"><a href="#设计目标" class="headerlink" title="设计目标"></a>设计目标</h1><p>Chubby最初的设计者并没有将它实现为一个包含<em>Paxos算法的协议库</em>，而是将Chubby设计成一个需要访问中心节点（Master）的分布式锁服务，是因为锁服务具有以下四个传统的算法库所没有的优点:</p>
+<ul>
+<li>对上层应用程序的改动、影响更小</li>
+<li>便于提供数据的发布与订阅</li>
+<li>开发者对基于锁的接口更加熟悉</li>
+<li>可以更便捷地构建更可靠的服务</li>
+</ul>
+<p>因此Chubby被设计成一个需要访问中心化节点的分布式锁服务。同时提出了一下几个设计目标：</p>
+<ul>
+<li>提供一个完整的、独立的分布式锁服务，而非仅仅是一个一致性协议的客户端</li>
+<li>提供<strong>粗粒度</strong>的锁服务</li>
+<li>同时提供对小文件的读写功能</li>
+<li>高可用+高可靠</li>
+<li>提供事件通知机制</li>
+</ul>
+<h1 id="Chubby技术架构"><a href="#Chubby技术架构" class="headerlink" title="Chubby技术架构"></a>Chubby技术架构</h1><h2 id="系统架构"><a href="#系统架构" class="headerlink" title="系统架构"></a>系统架构</h2><img src="/笔记/Chubby论文学习笔记/Figure1.png">
+<blockquote>
+<p>图1: Chubby服务端与客户端架构</p>
+</blockquote>
+<p>一个典型的Chubby集群(Chubby Cell)通常由5台服务器组成，这些副本服务器采用Paxos一致性协议，通过投票的方式选举产生一个获得过半投票的服务器作为Master。<br>一旦某个服务器成为Master，Chubby就会保证这一段时间内不会再有其他服务器成为Master，这段时期称为<strong>Master租期（Master lease）</strong>。</p>
+<p>在正常运行的情况下，Master服务器会通过不断续租的方式延长租期，直到Master出现故障，会进行新一轮的选举，循环往复。</p>
+<p>集群中每个服务器都维护一份<strong>服务端数据库的副本</strong>，但只有Master服务器能对该数据库进行写操作，其他服务器只能使用Paxos协议从Master上<strong>同步</strong>数据库的更新。</p>
+<h2 id="目录与文件"><a href="#目录与文件" class="headerlink" title="目录与文件"></a>目录与文件</h2><h2 id="锁与锁序列器"><a href="#锁与锁序列器" class="headerlink" title="锁与锁序列器"></a>锁与锁序列器</h2><h2 id="事件通知机制"><a href="#事件通知机制" class="headerlink" title="事件通知机制"></a>事件通知机制</h2><h2 id="缓存"><a href="#缓存" class="headerlink" title="缓存"></a>缓存</h2><h2 id="会话和会话激活（KeepAlive）"><a href="#会话和会话激活（KeepAlive）" class="headerlink" title="会话和会话激活（KeepAlive）"></a>会话和会话激活（KeepAlive）</h2><h3 id="KeepAlive请求"><a href="#KeepAlive请求" class="headerlink" title="KeepAlive请求"></a>KeepAlive请求</h3><h3 id="会话超时"><a href="#会话超时" class="headerlink" title="会话超时"></a>会话超时</h3><h2 id="Chubby-Master-故障恢复"><a href="#Chubby-Master-故障恢复" class="headerlink" title="Chubby Master 故障恢复"></a>Chubby Master 故障恢复</h2><hr>
+<h1 id="个人思考"><a href="#个人思考" class="headerlink" title="个人思考"></a>个人思考</h1>
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Distributed-System/" rel="tag"># Distributed System</a>
+          
+            <a href="/tags/Paxos/" rel="tag"># Paxos</a>
+          
+            <a href="/tags/GFS/" rel="tag"># GFS</a>
+          
+            <a href="/tags/Chubby/" rel="tag"># Chubby</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/笔记/Zab论文学习笔记/" rel="next" title="Zab论文学习笔记">
+                <i class="fa fa-chevron-left"></i> Zab论文学习笔记
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/笔记/磁盘分区知识笔记/" rel="prev" title="磁盘分区知识笔记">
+                磁盘分区知识笔记 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">Stardust</p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">19</span>
+                  <span class="site-state-item-name">posts</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                
+                  <span class="site-state-item-count">2</span>
+                  <span class="site-state-item-name">categories</span>
+                
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                
+                  <span class="site-state-item-count">27</span>
+                  <span class="site-state-item-name">tags</span>
+                
+              </div>
+            
+
+          </nav>
+
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#概述"><span class="nav-number">1.</span> <span class="nav-text">概述</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#设计目标"><span class="nav-number">2.</span> <span class="nav-text">设计目标</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Chubby技术架构"><span class="nav-number">3.</span> <span class="nav-text">Chubby技术架构</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#系统架构"><span class="nav-number">3.1.</span> <span class="nav-text">系统架构</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#目录与文件"><span class="nav-number">3.2.</span> <span class="nav-text">目录与文件</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#锁与锁序列器"><span class="nav-number">3.3.</span> <span class="nav-text">锁与锁序列器</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#事件通知机制"><span class="nav-number">3.4.</span> <span class="nav-text">事件通知机制</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#缓存"><span class="nav-number">3.5.</span> <span class="nav-text">缓存</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#会话和会话激活（KeepAlive）"><span class="nav-number">3.6.</span> <span class="nav-text">会话和会话激活（KeepAlive）</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#KeepAlive请求"><span class="nav-number">3.6.1.</span> <span class="nav-text">KeepAlive请求</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#会话超时"><span class="nav-number">3.6.2.</span> <span class="nav-text">会话超时</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Chubby-Master-故障恢复"><span class="nav-number">3.7.</span> <span class="nav-text">Chubby Master 故障恢复</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#个人思考"><span class="nav-number">4.</span> <span class="nav-text">个人思考</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2018</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Stardust</span>
+
+  
+</div>
+
+
+  <div class="powered-by">Powered by <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a></div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">Theme &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Muse</a> v5.1.4</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script><!-- hexo-inject:begin --><!-- Begin: Injected MathJax -->
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config("");
+</script>
+
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for(i=0; i < all.length; i += 1) {
+      all[i].SourceElement().parentNode.className += ' has-jax';
+    }
+  });
+</script>
+
+<script type="text/javascript" src="//cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+<!-- End: Injected MathJax -->
+<!-- hexo-inject:end -->
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

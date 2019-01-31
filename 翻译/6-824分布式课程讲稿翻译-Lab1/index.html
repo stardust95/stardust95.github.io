@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-CN">
+<head><meta name="generator" content="Hexo 3.8.0">
+  <!-- hexo-inject:begin --><!-- hexo-inject:end --><meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css">
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css">
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="Distributed System,MapReduce,MIT 6.824,">
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="概述在这个实验中, 你将要实现一个MapReduce库作为Go编程的入门练习, 并用于之后实现一个容错的分布式系统. 首先你需要编写一个简单的MapReduce程序; 其次, 你需要实现一个Master用于向MapReduce Worker派发Task, 并处理Worker的错误. 这个库的接口定义及容错的实现可以仿照我们讨论过的MapReduce论文中的设计.  协作规则除了我们给你的那部分">
+<meta name="keywords" content="Distributed System,MapReduce,MIT 6.824">
+<meta property="og:type" content="article">
+<meta property="og:title" content="6.824分布式课程讲稿翻译 - Lab1 MapReduce">
+<meta property="og:url" content="https://stardust-blog.cn/翻译/6-824分布式课程讲稿翻译-Lab1/index.html">
+<meta property="og:site_name" content="Stardust&#39;s Blog">
+<meta property="og:description" content="概述在这个实验中, 你将要实现一个MapReduce库作为Go编程的入门练习, 并用于之后实现一个容错的分布式系统. 首先你需要编写一个简单的MapReduce程序; 其次, 你需要实现一个Master用于向MapReduce Worker派发Task, 并处理Worker的错误. 这个库的接口定义及容错的实现可以仿照我们讨论过的MapReduce论文中的设计.  协作规则除了我们给你的那部分">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2018-12-21T15:54:44.079Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="6.824分布式课程讲稿翻译 - Lab1 MapReduce">
+<meta name="twitter:description" content="概述在这个实验中, 你将要实现一个MapReduce库作为Go编程的入门练习, 并用于之后实现一个容错的分布式系统. 首先你需要编写一个简单的MapReduce程序; 其次, 你需要实现一个Master用于向MapReduce Worker派发Task, 并处理Worker的错误. 这个库的接口定义及容错的实现可以仿照我们讨论过的MapReduce论文中的设计.  协作规则除了我们给你的那部分">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="https://stardust-blog.cn/翻译/6-824分布式课程讲稿翻译-Lab1/">
+
+
+
+
+
+  <title>6.824分布式课程讲稿翻译 - Lab1 MapReduce | Stardust's Blog</title><!-- hexo-inject:begin --><!-- hexo-inject:end -->
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope="" itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <!-- hexo-inject:begin --><!-- hexo-inject:end --><div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope="" itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Stardust's Blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">Live in thinking</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br>
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br>
+            
+            Archives
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://stardust-blog.cn/翻译/6-824分布式课程讲稿翻译-Lab1/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Stardust">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Stardust's Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">6.824分布式课程讲稿翻译 - Lab1 MapReduce</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2017-12-18T12:31:52+08:00">
+                2017-12-18
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/翻译/" itemprop="url" rel="index">
+                    <span itemprop="name">翻译</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h2><p>在这个实验中, 你将要实现一个MapReduce库作为Go编程的入门练习, 并用于之后实现一个容错的分布式系统. 首先你需要编写一个简单的MapReduce程序; 其次, 你需要实现一个Master用于向MapReduce Worker派发Task, 并处理Worker的错误. 这个库的接口定义及容错的实现可以仿照我们讨论过的<a href="http://research.google.com/archive/mapreduce-osdi04.pdf" target="_blank" rel="noopener">MapReduce论文</a>中的设计. </p>
+<h2 id="协作规则"><a href="#协作规则" class="headerlink" title="协作规则"></a>协作规则</h2><p>除了我们给你的那部分代码, 其他所有你提交到6.824课程的代码都需要由你自己写完. 不允许抄袭他人的或往年的答案. 你可以与其他同学讨论这个作业, 但不能复制他人的代码. 至于为何采用这个规则, 是因为我们相信自己动手去设计实现每个Lab才能让你收获最大.</p>
+<p>请不要向现在或将来上6.824课程的同学公开你的代码. <code>github.com</code>的repository默认是公开的, 所以请不要把你的代码放上去, 除非你把自己的repo设为私有的. 你会发现使用<a href="https://github.mit.edu/" target="_blank" rel="noopener">MIT的GitHub</a>会很方便, 但要记得创建一个私有的repo.</p>
+<h2 id="运行环境"><a href="#运行环境" class="headerlink" title="运行环境"></a>运行环境</h2><p>你将要使用<a href="http://www.golang.org/" target="_blank" rel="noopener">Go</a>语言实现这个实验(以及往后的实验). Go语言主页上有很多教程让你参考. 可能最方便的还是你在自己的电脑上安装Go来开发. 你也可以在Athena上使用Go. 我们会使用Go 1.7版本来对你们的实验评分, 由于我们不清楚其他版本会出现的问题, 因此你们也应该使用Go 1.7. </p>
+<p>我们提供了一个MapReduce实现的部分代码, 支持分布式和非分布式操作. 你可以通过<a href="https://git-scm.com/" target="_blank" rel="noopener">git</a>(一个版本控制系统)获取初始的实验代码. 要详细了解Git可以学习<a href="http://www.kernel.org/pub/software/scm/git/docs/user-manual.html" target="_blank" rel="noopener">Pro Git book</a>, <a href="http://www.kernel.org/pub/software/scm/git/docs/user-manual.html" target="_blank" rel="noopener">git用户手册</a>, 或者如果你熟悉其他的版本控制系统的话, 你会发现这篇文章<a href="http://eagain.net/articles/git-for-computer-scientists/" target="_blank" rel="noopener">CS-oriented overview of git</a>很有帮助. </p>
+<p>如果你用Athena, 你需要用x86或x86_64的Athena机器, 也就是说<code>uname -a</code>会出现<code>i386 GNU/Linux</code> or <code>i686 GNU/Linux</code> or <code>x86_64 GNU/Linux</code>. 你可以通过<code>ssh athena.dialup.mit.edu</code>登录一台公共的i686 Athena主机. 在Athena上你需要先执行这些命令:</p>
+<pre><code>athena$ add git
+athena$ setup ggo_v1.7
+</code></pre><p>课程的git地址是<code>git://g.csail.mit.edu/6.824-golabs-2017</code>. 要在你的目录下使用这些文件, 你需要通过执行以下命令<em>clone</em>这个repository:</p>
+<pre><code>$ git clone git://g.csail.mit.edu/6.824-golabs-2017 6.824
+$ cd 6.824
+$ ls
+Makefile src
+</code></pre><p>Git允许你跟踪对代码的修改. 例如, 你想保存目前的进度, 可以通过执行以下命令<em>commit</em>这些修改:</p>
+<pre><code>$ git commit -am &#39;partial solution to lab 1&#39;
+</code></pre><p>我们给你的MapReduce实现有两种模式的操作: 串行的(seqential)和分布式的(distributed). 在第一种模式下, 每次执行一个Map或Reduce的Task: 首先执行完第一个Task, 再执行第二个, 第三个等等. 所有的Map Task执行完后, 再执行第一个Reduce Task, 接着执行第二个…. 这个模式虽然不快, 但是很方便调试(debugging). </p>
+<p>而分布式的执行模式运行许多worker线程, 首先并行执行Map Task, 执行完再并行执行Reduce Task. 这种模式会快很多, 但也更难以实现和调试.</p>
+<h2 id="序言-熟悉源码-Getting-familiar-with-the-source"><a href="#序言-熟悉源码-Getting-familiar-with-the-source" class="headerlink" title="序言: 熟悉源码(Getting familiar with the source)"></a>序言: 熟悉源码(Getting familiar with the source)</h2><p>mapreduce包提供了一个简单的MapReduce库. 应用需要调用<code>Distributed()</code>(在<code>master.go</code>文件中)来启动一个job, 也可以调用<code>Sequential()</code>来串行执行以便调试. </p>
+<p>代码按照以下流程执行一个job:</p>
+<ol>
+<li>应用提供一系列的输入文件, 一个map函数, 一个reduce函数, 以及需要的Reduce Task的数量(<code>nReduce</code>). </li>
+<li>Master按照下述流程创建: 先启动一个RPC Server(见<code>master_rpc</code>), 然后等待worker来注册(register, 使用<code>master.go</code>中定义的<code>Register()</code>). 当这些Task变得可用(在第4, 5步)时, <code>schedule()</code>(<code>schedule.go</code>文件)决定如何将这些Task分配到worker上, 以及如何进行worker的失败处理.</li>
+<li>Master把每个输入文件对应一个Map Task, 并直接地(当使用<code>Sequential()</code>)或通过调用Worker的<code>DoTask</code> RPC请求间接地, 对每个Map Task执行至少一次的<code>doMap()</code>(<code>common_map.go</code>文件). 每次<code>doMap()</code>的调用读取相应的文件, 对文件内容调用map函数, 并将结果以键值对的格式写入到<code>nReduce</code>个中间文件. 过程中<code>doMap()</code>需要对每个Key的结果哈希映射到某个的中间文件, 等待Reduce Task作后续处理. 所有Map Task结束后将会有<code>nMap X nReduce</code>个文件. 每个文件名包含一个前缀, Map Task号以及Reduce Task号. 假设有两个Map Task和三个Reduce Task, 那么Map Task将创建如下6个中间文件:<pre><code>mrtmp.xxx-0-0
+mrtmp.xxx-0-1
+mrtmp.xxx-0-2
+mrtmp.xxx-1-0
+mrtmp.xxx-1-1
+mrtmp.xxx-1-2
+</code></pre>每个Worker必须能够读其他Worker写的文件以及输入文件. 实际部署环境中使用如GFS等的分布式文件系统, 来保证即便Worker运行在不同的机器上都能够访问这些文件. 但在实验中你只需要在同一台机器上运行, 并使用本地文件系统.</li>
+<li>下一步Master需要对每个reduce task至少调用一次<code>doReduce()</code>(<code>common_reduce.go</code>文件). 与<code>doMap()</code>类似, 它可以直接运行或通过某个Worker进行. 第<code>r</code>个Reduce Task的<code>doReduce()</code>调用会收集每个Map Task输出的第<code>r</code>个中间文件, 并对文件中出现的每个Key调用reduce函数. Reduce Task产生<code>nReduce</code>个结果文件. </li>
+<li>Master调用<code>mr.merge()</code>(<code>master_splitmerge.go</code>文件), 这个函数合并前一步产生的<code>nReduce</code>个文件到一个单独的文件中.</li>
+<li>Master向每个Worker发送一个Shutdown RPC调用, 然后关闭自己的RPC Server.</li>
+</ol>
+<blockquote>
+<p>注: 这门课接下来的练习中, 你将要自己实现/修改<code>doMap</code>, <code>doReduce</code>和<code>schedule</code>. 这些函数分别在<code>common_map.go</code>, <code>common_reduce.go</code>, 以及 <code>schedule.go</code>中. 同时你还需要在<code>../main/wc.go</code>中实现Map和Reduce函数.</p>
+</blockquote>
+<p>你不需要修改其他文件, 但阅读这些文件或许能帮助你更好地理解其他函数是如何在整个系统架构中运行的.</p>
+<h2 id="Part-1-MapReduce-输入输出"><a href="#Part-1-MapReduce-输入输出" class="headerlink" title="Part 1: MapReduce 输入输出"></a>Part 1: MapReduce 输入输出</h2><p>我们提供的这个MapReduce的实现缺少了某些部分. 在你编写第一组Map/Reduce函数前, 你需要完成MapReduce的串行(sequential)版本的实现. 需要注意的是, 我们给你的代码缺少两个关键部分: 将一个Map Task的输出分开的函数, 以及收集所有Reduce Task输出的函数. 这些Task分别在<code>common_map.go</code>中的<code>doMap()</code>和<code>common_reduce.go</code>中的<code>doReduce()</code>函数中实现. 这些文件中的注释会你指明正确的方向. </p>
+<p>为了让你判断是否正确地实现了<code>doMap()</code>和<code>doReduce()</code>, 我们提供了一组Go单元测试集来验证你实现的正确性. 这些测试写在<code>test_test.go</code>文件中. 要对你已经实现的串行版本进行测试, 需要执行:</p>
+<pre><code>$ cd 6.824
+$ export &quot;GOPATH=$PWD&quot;  # go needs $GOPATH to be set to the project&#39;s working directory
+$ cd &quot;$GOPATH/src/mapreduce&quot;
+$ go test -run Sequential
+ok      mapreduce    2.694s
+</code></pre><blockquote>
+<p>如果我们在自己的机器上执行你的程序时, 你的程序通过了<code>Sequential</code>测试(输出入上述命令行), 那么你这部分可以得满分.</p>
+</blockquote>
+<p>如果命令行输出中测试项旁边没有出现<em>ok</em>的字样, 表示你的实现可能有一些bug. 如果需要更详细的输出, 可以在<code>common.go</code>中设置<code>debugEnabled = true</code>并在上面测试命令中加上<code>-v</code>, 你将会得到如下更详细的输出:</p>
+<pre><code>$ env &quot;GOPATH=$PWD/../../&quot; go test -v -run Sequential
+=== RUN   TestSequentialSingle
+master: Starting Map/Reduce task test
+Merge: read mrtmp.test-res-0
+master: Map/Reduce task completed
+--- PASS: TestSequentialSingle (1.34s)
+=== RUN   TestSequentialMany
+master: Starting Map/Reduce task test
+Merge: read mrtmp.test-res-0
+Merge: read mrtmp.test-res-1
+Merge: read mrtmp.test-res-2
+master: Map/Reduce task completed
+--- PASS: TestSequentialMany (1.33s)
+PASS
+ok      mapreduce    2.672s
+</code></pre><h2 id="Part-2-Single-worker-单词统计-Word-Count"><a href="#Part-2-Single-worker-单词统计-Word-Count" class="headerlink" title="Part 2: Single-worker 单词统计(Word Count)"></a>Part 2: Single-worker 单词统计(Word Count)</h2><p>现在你将实现单词统计——一个简单的MapReduce用例. 在<code>main/wc.go</code>文件中, 你会发现空的<code>mapF()</code>和<code>reduceF()</code>函数, 你的工作就是补充代码使得<code>wc.go</code>统计输入中每个单词的出现次数. 一个单词是连续的字母序列, 正如<code>unicode.IsLetter</code>的定义. </p>
+<p>在<code>src/main/</code>目录下有一些文件名形如<code>pg-*.txt</code>的输入文件, 都是从<a href="https://www.gutenberg.org/ebooks/search/%3Fsort_order%3Ddownloads" target="_blank" rel="noopener">Project Gutenberg</a>下载的. 下面介绍如何用这些文件作为输入运行<code>wc</code>:</p>
+<pre><code>$ cd 6.824
+$ export &quot;GOPATH=$PWD&quot;
+$ cd &quot;$GOPATH/src/main&quot;
+$ go run wc.go master sequential pg-*.txt
+# command-line-arguments
+./wc.go:14: missing return at end of function
+./wc.go:21: missing return at end of function
+</code></pre><p>由于<code>mapF()</code>和<code>reduceF()</code>不完整导致了编译失败.</p>
+<p>回忆一下<a href="http://research.google.com/archive/mapreduce-osdi04.pdf" target="_blank" rel="noopener">MapReduce论文</a>的第二章节(Section 2). 你的<code>mapF()</code>和<code>reduceF()</code>函数会和论文2.1小节的有少许不同. 你的<code>mapF()</code>需要同时接收文件名和文件内容; 函数需要把文本内容分成单词, 并返回一个Go slice类型的<code>mapreduce.KeyValue</code>. 虽然你可以自定义在<code>mapF()</code>的输出中key和value的形式, 但在单词统计中只有把单词当做key才有意义. 你的<code>reduceF()</code>函数将会对<code>mapF()</code>产生的每组key和value被调用一次, 函数需要返回一个字符串表示这个key出现的总次数. </p>
+<blockquote>
+<p>提示:</p>
+<ul>
+<li>要想更好地了解Go中的string, 可以阅读<a href="http://blog.golang.org/strings" target="_blank" rel="noopener">Go Blog on strings</a></li>
+<li>你可以使用<code>strings.FieldsFunc</code>函数将一个string分成多个子串</li>
+<li><a href="http://golang.org/pkg/strconv/" target="_blank" rel="noopener">strconv包</a>能方便地将string转成integer类型</li>
+</ul>
+</blockquote>
+<p>你可以通过以下命令测试你的答案:</p>
+<pre><code>$ cd &quot;$GOPATH/src/main&quot;
+$ time go run wc.go master sequential pg-*.txt
+master: Starting Map/Reduce task wcseq
+Merge: read mrtmp.wcseq-res-0
+Merge: read mrtmp.wcseq-res-1
+Merge: read mrtmp.wcseq-res-2
+master: Map/Reduce task completed
+14.59user 3.78system 0:14.81elapsed
+</code></pre><p>输出结果将在文件<code>mrtmp.wcseq</code>中. 如果以下命令产生的结果如下所示则表明你的实现是正确的:</p>
+<pre><code>$ sort -n -k2 mrtmp.wcseq | tail -10
+he: 34077
+was: 37044
+that: 37495
+I: 44502
+in: 46092
+a: 60558
+to: 74357
+of: 79727
+and: 93990
+the: 154024
+</code></pre><p>你通过下面的命令删除所有的输出文件和中间文件:</p>
+<pre><code>$ rm mrtmp.*
+</code></pre><p>为了使测试更简单, 可以运行:</p>
+<pre><code>$ bash ./test-wc.sh
+</code></pre><p>之后就能知道你的答案是否正确了.</p>
+<blockquote>
+<p>如果我们在自己的机器上执行你的程序时, 你的MapReduce单词统计输出 (在之前实现的串行(Sequential)执行模式下)与正确输出相同, 那么你这部分可以得满分.</p>
+</blockquote>
+<h2 id="Part-3-分发MapReduce-Task"><a href="#Part-3-分发MapReduce-Task" class="headerlink" title="Part 3: 分发MapReduce Task"></a>Part 3: 分发MapReduce Task</h2><p>你现在的实现一次只能运行一个Map或Reduce的Task. MapReduce最大的卖点之一就是它能自动将串行代码并行化, 不需要开发者做额外的工作. 在实验的这个部分中, 你需要完成一个MapReduce的新版本, 需要能把任务分配给并行的，或运行在多核上的多个worker线程. 虽然不像现实的MapReduce集群那样运行在多台不同的机器上, 但你的实现会用到RPC来模拟分布式的计算.</p>
+<p><code>mapreduce/master.go</code>中的代码完成了管理MapReduce任务的大部分工作. 我们还在<code>mapreduce/worker.go</code>中提供了一个worker线程需要的所有代码, 以及在<code>mapreduce/common_rpc.go</code>中提供了处理RPC的代码. </p>
+<p>你的任务是在<code>mapreduce/schedule.go</code>中实现<code>schedule()</code>函数. 在一个MapReduce任务中master调用两次<code>schedule()</code>, 一次用于Map阶段, 一次用于Reduce阶段. <code>schedule</code>的工作是向可用的Worker分发Task. 一般情况下, Task的个数要远多于Worker的数量, 因此<code>schedule()</code>需要给每个Worker一系列的Task, 每次分发一个. <code>schedule()</code>需要等待所有Task执行完成后再返回. </p>
+<p><code>schedule()</code>通过读取<code>registerChan</code>参数来知道Worker的集合. 这个channel对每个worker产生一个string, 表示这个Worker的RPC地址. 某些Worker可能在<code>schedule()</code>被调用之前就存在了, 有些可能是在<code>schedule()</code>运行时启动的, 所有这些Worker都会在<code>registerChan</code>上出现. <code>schedule()</code>需要使用所有Worker, 包括该函数运行时启动的那部分.</p>
+<p><code>schedule()</code>通过向Worker发送一个<code>Worker.DoTask</code>的RPC来让Worker执行一个Task. RPC的参数被定义在<code>mapreduce/common_rpc.go</code>文件中的<code>DoTaskArgs</code>结构体中. 其中<code>File</code>成员只用于Map Task, 表示要读入的文件名; <code>schedule()</code>可以在<code>mapFiles</code>参数中找到这些文件名.</p>
+<p>使用<code>mapreduce/common_rpc.go</code>中的<code>call()</code>函数可以向Worker发送一个RPC. 第一个参数是从<code>registerChan</code>中读到的Worker地址, 第二个参数应为<code>&quot;Worker.DoTask&quot;</code>, 第三个参数是<code>DoTaskArgs</code>结构体, 最后一个参数应为<code>nil</code>. </p>
+<p>你在Part 3的答案只能包含对<code>schedule.go</code>的修改. 如果你在debug的过程中修改了其他文件, 请在提交之前恢复这些文件原有的内容再测试.</p>
+<p>要测试答案的话, 应该用和Part 1同样的Go测试集, 但记得用<code>-run TestBasic</code>代替<code>-run Sequential</code>, 这样就会执行分布式的测试用例(不包含Worker错误), 而不是之前运行过的串行用例:</p>
+<pre><code>$ go test -run TestBasic
+</code></pre><blockquote>
+<p>如果我们在自己的机器上执行你的程序时, 你的程序通过了<code>test_test.go</code>(上面这段代码的测试)中<code>TestBasic</code>的测试用例, 那么你这部分可以得满分.</p>
+</blockquote>
+<p><br></p>
+<blockquote>
+<p>提示:</p>
+<ul>
+<li>Go RPC包的文档: <a href="https://golang.org/pkg/net/rpc/" target="_blank" rel="noopener">RPC package</a></li>
+<li><code>schedule()</code>需要并行地向Worker发送RPC请求, 这样Worker才能并发地执行Task. 你会发现<code>go statement</code>这样的语法可以方便地达到这个目的, 见<a href="http://golang.org/doc/effective_go.html#concurrency" target="_blank" rel="noopener">Concurrency in Go</a>.</li>
+<li><code>schedule()</code>需要等待一个Worker完成时才能给它派发另一个Task. 你会发现Go的<a href="(https://tour.golang.org/concurrency/2">channel类型</a>)对于实现这个功能很有帮助.</li>
+<li>可能会用到<a href="https://golang.org/pkg/sync/#WaitGroup" target="_blank" rel="noopener">sync.WaitGroup</a></li>
+<li>追踪Bug最简单的方式就是插入一些输出状态的语句(可以调用<code>common.go</code>的<code>debug()</code>). 将所有的输出收集到一个文件里可以用<code>go test -run TestBasic &gt; out</code>, 然后思考这个输出和你的预期是否一致. 最后这一步思考是很重要的. </li>
+<li>要检查你的代码是否有竞争条件, 可以用<code>go test -race -run TestBasic &gt; out</code>对你的测试运行Go的<a href="https://golang.org/doc/articles/race_detector.html" target="_blank" rel="noopener">race detector</a></li>
+</ul>
+</blockquote>
+<p><br></p>
+<blockquote>
+<p>注: 我们给你的代码在一个单独的Unix进程中执行若干个Worker线程, 并可以利用同一台机器上的多个核(core). 要使这些Worker运行在多台机器上并通过网络通信, 可能需要做一些修改. RPC需要通过TCP而不是<a href="https://en.wikipedia.org/wiki/Unix_domain_socket" target="_blank" rel="noopener">Unix-domain socket</a>, 还需要一个能在所有机器上启动Worker进程的方法, 并且所有机器需要通过某种网络文件系统(NFS)来共享存储.</p>
+</blockquote>
+<h2 id="Part-4-处理Worker错误"><a href="#Part-4-处理Worker错误" class="headerlink" title="Part 4: 处理Worker错误"></a>Part 4: 处理Worker错误</h2><p>这个部分中你需要让Master处理失败的Worker. 这个工作在MapReduce中相对简单, 因为Worker不保存状态. 如果一个Worker失败了, Master向Worker发送的任何RPC调用都会失败(例如由于超时). 因此, 如果Master到Worker的RPC失败了, Master需要将分配给这个Worker的任务分配给另一个Worker.</p>
+<p>一次RPC调用失败并不意味着Worker没有执行这次Task, Worker可能执行了Task但丢失了回复(lost reply), 或者WOrker可能仍在执行中单Master的RPC超时了. 因此, 有可能发生两个Worker收到同一个Task并执行产生输出的情况. 对于同一个输入, 要求两次调用map或reduce函数需产生同样的输出(也就是说map和reduce函数必须是”functional”的), 因此就算不确定后续的处理读入的是哪一个Worker产生的输出, 也不会造成不一致性(inconsistencies). 此外, MapReduce框架保证了map和reduce函数产生输出是原子操作: 输出文件要么不存在, 若存在的话就一定包含一次map或reduce函数执行的完整输出(实验代码没有实现这个功能, 但取而代之的是Worker只会在执行一个Task结束之后才失败, 因此不会有多个Task并发执行的情况发生). </p>
+<blockquote>
+<p>注: 你不需要处理Master的失败. 使Master自动容错远比Worker容错更困难, 因为Master有状态, 在Master失败后需要恢复状态以便回到之前的操作. 后面的许多实验正是要挑战这个问题. </p>
+</blockquote>
+<p>你的实现需要通过<code>test_test.go</code>中两个剩下的测试用例. 第一个用例测试一个WOrker的是啊比, 而第二个测试多个Worker的多个失败. 测试用例周期性地启动新的Worker, 使Master用来继续处理, 但这些Worker会在处理一些Task之后失败. 用以下命令执行这些测试:</p>
+<pre><code>$ go test -run Failure
+</code></pre><blockquote>
+<p>如果我们在自己的机器上执行你的程序时, 你的程序通过了所有包含Worker错误的测试用例(就是上面的命令执行的测试), 那么你这部分可以得满分. </p>
+</blockquote>
+<p>你在Part 4提交的答案只应该包含对<code>schedule.go</code>文件的修改. 如果你在debug的过程中修改了其他文件, 请在提交之前恢复这些文件原有的内容再测试.</p>
+<h2 id="Part-5-生成反向索引-选做-附加分"><a href="#Part-5-生成反向索引-选做-附加分" class="headerlink" title="Part 5: 生成反向索引(选做, 附加分)"></a>Part 5: 生成反向索引(选做, 附加分)</h2><p>这是一个挑战性的选做练习, 你需要构造Map和Reduce函数来生成一个反向索引. </p>
+<p>反向索引在计算机科学中被广泛使用, 特别是用于文档搜索. 粗略地说, 反向索引就是在大量数据中建立一个从每个数据的特定字段(interesting facts), 到该数据实际存储位置的映射. 例如在搜索中, 反向索引可能就是一个从关键词到包含这些关键词的文档的一个映射. </p>
+<p>我们已经创建了一个<code>wc.go</code>文件的副本:<code>main/ii.go</code>. 你需要在<code>main/ii.go</code>中修改<code>mapF</code>和<code>reduceF</code>使得它们共同产生一个反向索引. 运行<code>ii.go</code>应输出一系列元组, 每个一行, 如下所示:</p>
+<pre><code>$ go run ii.go master sequential pg-*.txt
+$ head -n5 mrtmp.iiseq
+A: 16 pg-being_ernest.txt,pg-dorian_gray.txt,pg-dracula.txt,pg-emma.txt,pg-frankenstein.txt,pg-great_expectations.txt,pg-grimm.txt,pg-huckleberry_finn.txt,pg-les_miserables.txt,pg-metamorphosis.txt,pg-moby_dick.txt,pg-sherlock_holmes.txt,pg-tale_of_two_cities.txt,pg-tom_sawyer.txt,pg-ulysses.txt,pg-war_and_peace.txt
+ABC: 2 pg-les_miserables.txt,pg-war_and_peace.txt
+ABOUT: 2 pg-moby_dick.txt,pg-tom_sawyer.txt
+ABRAHAM: 1 pg-dracula.txt
+ABSOLUTE: 1 pg-les_miserables.txt
+</code></pre><p>上面列的可能不够清晰, 其标准格式如下:</p>
+<pre><code>word: #documents documents sorted and separated by commas
+</code></pre><p>要从这部分拿到满分, 你需要通过<code>bash ./test-ii.sh</code>的测试, 命令和输出如下:</p>
+<pre><code>$ sort -k1,1 mrtmp.iiseq | sort -snk2,2 mrtmp.iiseq | grep -v &#39;16&#39; | tail -10
+women: 15 pg-being_ernest.txt,pg-dorian_gray.txt,pg-dracula.txt,pg-emma.txt,pg-frankenstein.txt,pg-great_expectations.txt,pg-huckleberry_finn.txt,pg-les_miserables.txt,pg-metamorphosis.txt,pg-moby_dick.txt,pg-sherlock_holmes.txt,pg-tale_of_two_cities.txt,pg-tom_sawyer.txt,pg-ulysses.txt,pg-war_and_peace.txt
+won: 15 pg-being_ernest.txt,pg-dorian_gray.txt,pg-dracula.txt,pg-frankenstein.txt,pg-great_expectations.txt,pg-grimm.txt,pg-huckleberry_finn.txt,pg-les_miserables.txt,pg-metamorphosis.txt,pg-moby_dick.txt,pg-sherlock_holmes.txt,pg-tale_of_two_cities.txt,pg-tom_sawyer.txt,pg-ulysses.txt,pg-war_and_peace.txt
+wonderful: 15 pg-being_ernest.txt,pg-dorian_gray.txt,pg-dracula.txt,pg-emma.txt,pg-frankenstein.txt,pg-great_expectations.txt,pg-grimm.txt,pg-huckleberry_finn.txt,pg-les_miserables.txt,pg-moby_dick.txt,pg-sherlock_holmes.txt,pg-tale_of_two_cities.txt,pg-tom_sawyer.txt,pg-ulysses.txt,pg-war_and_peace.txt
+words: 15 pg-dorian_gray.txt,pg-dracula.txt,pg-emma.txt,pg-frankenstein.txt,pg-great_expectations.txt,pg-grimm.txt,pg-huckleberry_finn.txt,pg-les_miserables.txt,pg-metamorphosis.txt,pg-moby_dick.txt,pg-sherlock_holmes.txt,pg-tale_of_two_cities.txt,pg-tom_sawyer.txt,pg-ulysses.txt,pg-war_and_peace.txt
+worked: 15 pg-dorian_gray.txt,pg-dracula.txt,pg-emma.txt,pg-frankenstein.txt,pg-great_expectations.txt,pg-grimm.txt,pg-huckleberry_finn.txt,pg-les_miserables.txt,pg-metamorphosis.txt,pg-moby_dick.txt,pg-sherlock_holmes.txt,pg-tale_of_two_cities.txt,pg-tom_sawyer.txt,pg-ulysses.txt,pg-war_and_peace.txt
+worse: 15 pg-being_ernest.txt,pg-dorian_gray.txt,pg-dracula.txt,pg-emma.txt,pg-frankenstein.txt,pg-great_expectations.txt,pg-grimm.txt,pg-huckleberry_finn.txt,pg-les_miserables.txt,pg-moby_dick.txt,pg-sherlock_holmes.txt,pg-tale_of_two_cities.txt,pg-tom_sawyer.txt,pg-ulysses.txt,pg-war_and_peace.txt
+wounded: 15 pg-being_ernest.txt,pg-dorian_gray.txt,pg-dracula.txt,pg-emma.txt,pg-frankenstein.txt,pg-great_expectations.txt,pg-grimm.txt,pg-huckleberry_finn.txt,pg-les_miserables.txt,pg-moby_dick.txt,pg-sherlock_holmes.txt,pg-tale_of_two_cities.txt,pg-tom_sawyer.txt,pg-ulysses.txt,pg-war_and_peace.txt
+yes: 15 pg-being_ernest.txt,pg-dorian_gray.txt,pg-dracula.txt,pg-emma.txt,pg-great_expectations.txt,pg-grimm.txt,pg-huckleberry_finn.txt,pg-les_miserables.txt,pg-metamorphosis.txt,pg-moby_dick.txt,pg-sherlock_holmes.txt,pg-tale_of_two_cities.txt,pg-tom_sawyer.txt,pg-ulysses.txt,pg-war_and_peace.txt
+younger: 15 pg-being_ernest.txt,pg-dorian_gray.txt,pg-dracula.txt,pg-emma.txt,pg-frankenstein.txt,pg-great_expectations.txt,pg-grimm.txt,pg-huckleberry_finn.txt,pg-les_miserables.txt,pg-moby_dick.txt,pg-sherlock_holmes.txt,pg-tale_of_two_cities.txt,pg-tom_sawyer.txt,pg-ulysses.txt,pg-war_and_peace.txt
+yours: 15 pg-being_ernest.txt,pg-dorian_gray.txt,pg-dracula.txt,pg-emma.txt,pg-frankenstein.txt,pg-great_expectations.txt,pg-grimm.txt,pg-huckleberry_finn.txt,pg-les_miserables.txt,pg-moby_dick.txt,pg-sherlock_holmes.txt,pg-tale_of_two_cities.txt,pg-tom_sawyer.txt,pg-ulysses.txt,pg-war_and_peace.txt
+</code></pre><h2 id="运行所有测试"><a href="#运行所有测试" class="headerlink" title="运行所有测试"></a>运行所有测试</h2><p>你可以通过脚本<code>src/main/test-mr.sh</code>来执行所有测试. 如果答案正确的话, 你的输出应该如下所示:</p>
+<pre><code>$ bash ./test-mr.sh
+==&gt; Part I
+ok      mapreduce    3.053s
+
+==&gt; Part II
+Passed test
+
+==&gt; Part III
+ok      mapreduce    1.851s
+
+==&gt; Part IV
+ok      mapreduce    10.650s
+
+==&gt; Part V (challenge)
+Passed test
+</code></pre><h2 id="作业提交方式"><a href="#作业提交方式" class="headerlink" title="作业提交方式"></a>作业提交方式</h2><p>略</p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Distributed-System/" rel="tag"># Distributed System</a>
+          
+            <a href="/tags/MapReduce/" rel="tag"># MapReduce</a>
+          
+            <a href="/tags/MIT-6-824/" rel="tag"># MIT 6.824</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/翻译/6-824分布式课程讲稿翻译一/" rel="next" title="MIT 6.824分布式课程讲稿翻译 - Lec 1">
+                <i class="fa fa-chevron-left"></i> MIT 6.824分布式课程讲稿翻译 - Lec 1
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/翻译/6-824分布式课程讲稿翻译二/" rel="prev" title="MIT 6.824分布式课程讲稿翻译 - Lec 2">
+                MIT 6.824分布式课程讲稿翻译 - Lec 2 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">Stardust</p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">17</span>
+                  <span class="site-state-item-name">posts</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                
+                  <span class="site-state-item-count">2</span>
+                  <span class="site-state-item-name">categories</span>
+                
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                
+                  <span class="site-state-item-count">29</span>
+                  <span class="site-state-item-name">tags</span>
+                
+              </div>
+            
+
+          </nav>
+
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#概述"><span class="nav-number">1.</span> <span class="nav-text">概述</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#协作规则"><span class="nav-number">2.</span> <span class="nav-text">协作规则</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#运行环境"><span class="nav-number">3.</span> <span class="nav-text">运行环境</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#序言-熟悉源码-Getting-familiar-with-the-source"><span class="nav-number">4.</span> <span class="nav-text">序言: 熟悉源码(Getting familiar with the source)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Part-1-MapReduce-输入输出"><span class="nav-number">5.</span> <span class="nav-text">Part 1: MapReduce 输入输出</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Part-2-Single-worker-单词统计-Word-Count"><span class="nav-number">6.</span> <span class="nav-text">Part 2: Single-worker 单词统计(Word Count)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Part-3-分发MapReduce-Task"><span class="nav-number">7.</span> <span class="nav-text">Part 3: 分发MapReduce Task</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Part-4-处理Worker错误"><span class="nav-number">8.</span> <span class="nav-text">Part 4: 处理Worker错误</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Part-5-生成反向索引-选做-附加分"><span class="nav-number">9.</span> <span class="nav-text">Part 5: 生成反向索引(选做, 附加分)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#运行所有测试"><span class="nav-number">10.</span> <span class="nav-text">运行所有测试</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#作业提交方式"><span class="nav-number">11.</span> <span class="nav-text">作业提交方式</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Stardust</span>
+
+  
+</div>
+
+
+  <div class="powered-by">Powered by <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a></div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">Theme &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Muse</a> v5.1.4</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+  
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+          processEscapes: true,
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+        }
+      });
+    </script>
+
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Queue(function() {
+        var all = MathJax.Hub.getAllJax(), i;
+        for (i=0; i < all.length; i += 1) {
+          all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+      });
+    </script>
+    <script type="text/javascript" src="//cdn.bootcss.com/mathjax/2.7.1/latest.js?config=TeX-AMS-MML_HTMLorMML"></script><!-- hexo-inject:begin --><!-- Begin: Injected MathJax -->
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config("");
+</script>
+
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for(i=0; i < all.length; i += 1) {
+      all[i].SourceElement().parentNode.className += ' has-jax';
+    }
+  });
+</script>
+
+<script type="text/javascript" src="//cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+<!-- End: Injected MathJax -->
+<!-- hexo-inject:end -->
+  
+
+
+  
+
+  
+
+</body>
+</html>

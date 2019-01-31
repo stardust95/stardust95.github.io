@@ -1,0 +1,2459 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-CN">
+<head><meta name="generator" content="Hexo 3.8.0">
+  <!-- hexo-inject:begin --><!-- hexo-inject:end --><meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css">
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css">
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="Storage,Operating System,Linux,Block Storage,">
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="块设备基础知识块设备操作过程 从图中可以看出，对于磁盘的一次读请求，首先经过虚拟文件系统（VFS），其次是页高速缓存（page cache），接下来是映射层（mapping layer，是具体的文件系统如ext4）、通用块层（generic block layer）、IO 调度程序（I/O scheduler，也叫elevator）、块设备驱动（block device driver），最后是物理">
+<meta name="keywords" content="Storage,Operating System,Linux,Block Storage">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Linux通用块层及iostat学习笔记">
+<meta property="og:url" content="https://stardust-blog.cn/笔记/iostat学习笔记/index.html">
+<meta property="og:site_name" content="Stardust&#39;s Blog">
+<meta property="og:description" content="块设备基础知识块设备操作过程 从图中可以看出，对于磁盘的一次读请求，首先经过虚拟文件系统（VFS），其次是页高速缓存（page cache），接下来是映射层（mapping layer，是具体的文件系统如ext4）、通用块层（generic block layer）、IO 调度程序（I/O scheduler，也叫elevator）、块设备驱动（block device driver），最后是物理">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="https://stardust-blog.cn/笔记/iostat学习笔记/IO-stack.png">
+<meta property="og:image" content="https://stardust-blog.cn/笔记/iostat学习笔记/kernel_IO_structs.jpeg">
+<meta property="og:updated_time" content="2019-01-31T02:23:21.066Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Linux通用块层及iostat学习笔记">
+<meta name="twitter:description" content="块设备基础知识块设备操作过程 从图中可以看出，对于磁盘的一次读请求，首先经过虚拟文件系统（VFS），其次是页高速缓存（page cache），接下来是映射层（mapping layer，是具体的文件系统如ext4）、通用块层（generic block layer）、IO 调度程序（I/O scheduler，也叫elevator）、块设备驱动（block device driver），最后是物理">
+<meta name="twitter:image" content="https://stardust-blog.cn/笔记/iostat学习笔记/IO-stack.png">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="https://stardust-blog.cn/笔记/iostat学习笔记/">
+
+
+
+
+
+  <title>Linux通用块层及iostat学习笔记 | Stardust's Blog</title><!-- hexo-inject:begin --><!-- hexo-inject:end -->
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope="" itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <!-- hexo-inject:begin --><!-- hexo-inject:end --><div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope="" itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Stardust's Blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">Live in thinking</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br>
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br>
+            
+            Archives
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://stardust-blog.cn/笔记/iostat学习笔记/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Stardust">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Stardust's Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">Linux通用块层及iostat学习笔记</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2018-03-11T15:45:25+08:00">
+                2018-03-11
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/笔记/" itemprop="url" rel="index">
+                    <span itemprop="name">笔记</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h1 id="块设备基础知识"><a href="#块设备基础知识" class="headerlink" title="块设备基础知识"></a>块设备基础知识</h1><h2 id="块设备操作过程"><a href="#块设备操作过程" class="headerlink" title="块设备操作过程"></a>块设备操作过程</h2><img src="/笔记/iostat学习笔记/IO-stack.png">
+<p>从图中可以看出，对于磁盘的一次读请求，首先经过虚拟文件系统（VFS），其次是页高速缓存（page cache），接下来是映射层（mapping layer，是具体的文件系统如ext4）、通用块层（generic block layer）、IO 调度程序（I/O scheduler，也叫elevator）、块设备驱动（block device driver），最后是物理块设备（block device）。</p>
+<p>下面简要概括一个块设备I/O操作的执行过程：</p>
+<ol>
+<li>系统调用(如<code>read()</code>)的服务例程调用适当的<strong>VFS</strong>函数。</li>
+<li>VFS函数确定所请求的数据是否已经存在，若数据存在于内存的<strong>页高速缓存</strong>中，则直接读内存；否则进入下一步。</li>
+<li>内核需要从块设备读数据，通过<strong>映射层</strong>确定数据的物理位置。</li>
+<li>现在内核可以向<strong>通用块层</strong>提交请求，启动I/O操作来传送所请求的数据。一般而言，每个I/O操作只针对磁盘上一组连续的块。由于请求的数据不必位于相邻的块中，所以通用块层可能启动几次I/O操作。每次I/O操作由一个“块I/O”（简称“bio”）结构描述，它收集底层组件需要的所有信息以满足所发出的请求。</li>
+<li>通用块层下面的<strong>I/O调度程序</strong>根据预先定义的内核策略，将待处理的I/O操作（bio）映射成一个I/O请求（request）并插入到块设备的请求队列(request queue)中，或将一个I/O操作合并到队列中已有的、且物理介质上相邻的请求中。</li>
+<li><strong>激活</strong>的<strong>块设备驱动程序</strong>调用策略例程(strategy routine)选择一个待处理的请求，并向<strong>磁盘控制器</strong>的硬件接口发送适当的命令，来进行实际的数据传送。</li>
+<li>当I/O操作终止时，<strong>磁盘控制器</strong>就产生一个中断，如果需要，相应的中断程序再调用策略例程去处理队列中的另一个请求。</li>
+</ol>
+<p>可以看到块设备的操作涉及许多内核组件, 每个组件采用不同长度的块来管理磁盘数据：</p>
+<ul>
+<li>硬件块设备控制器采用称为“扇区”的固定长度的块来传送数据，因此I/O调度程序和块设备驱动程序必须管理数据扇区。</li>
+<li>虚拟文件系统、映射层和文件系统将磁盘数据存放在逻辑单元“块”中，一个块对应文件系统中一个最小的磁盘存储单元。</li>
+<li>页高速缓存作用于磁盘数据的“页”上，每页正好装在一个页框中。</li>
+<li>块设备驱动程序能够处理数据的“段”：一个段就是一个内存页或内存页的一部分，它们包含磁盘上物理相邻的数据块。</li>
+<li>通用块层将所有上层和下层的组件联合在一起，因此它需要了解数据的扇区、块、段以及页。</li>
+</ul>
+<p>要特别注意的是，虽然块设备驱动程序可以每次传送一个单独的扇区，但是这样会导致磁盘性能的下降（因为确定磁盘表面上扇区的物理位置相当费时）。因此当内核创建了一个块设备I/O请求时，内核并不是立即执行它，I/O请求仅仅被调度，执行会向后推迟。</p>
+<p>这种人为的延迟是提高块设备性能的关键机制：当请求传送一个新的数据块时，内核会检查能否将新请求与之前一直处于等待的某个请求<strong>合并</strong>，以减少寻道次数。I/O调度程序正是负责接收并调度通用块层创建的I/O请求。</p>
+<p>为了实现这种延迟，通用块层引入了一个“插入/拔出”(plug/unplug)的概念。<br>一开始，队列是空的并且是已插入（可理解为关闭）的。此时向空的队列提交请求，以及今后的一段时间内，不会有请求被底层的设备驱动程序处理，这样通用块层中的bio才可以有充足的时间进行合并。<br>而当通用块层上层提交了足够的bio以后，它会显式地进行拔出（可理解为激活)操作，或者在一个很短的超时时间后被自动拔出，拔出后队列中的I/O请求才会开始下发到设备驱动程序。<br>通用块层就是通过这样的plug/unplug方式来保证I/O请求能够延迟下发，以达到最终的性能提升。</p>
+<h2 id="通用块层"><a href="#通用块层" class="headerlink" title="通用块层"></a>通用块层</h2><h3 id="bio结构体"><a href="#bio结构体" class="headerlink" title="bio结构体"></a>bio结构体</h3><p>通用块层的核心数据结构是一个称为bio的结构体，它描述了<strong>当前正在执行的（活动的）、以片段（segment）链表</strong>的形式组织的<strong>块设备I/O操作</strong>，所以该结构体中的主要成员变量都是用来管理相关信息的。<br>其中一个片段是一小块连续的内存缓冲区。这样的好处就是不需要保证单个缓冲区一定要连续。</p>
+<p>每个bio实例都包含一个磁盘存储区标识符（存储区中的起始扇区号和扇区数目），及一个或多个描述与I/O操作相关的内存区的片段：</p>
+<pre><code class="lang-c">/* blk_types.h */
+/* 内核版本均为v2.6.39 */
+struct bio_vec {
+  struct page    * bv_page; /* 指向这个内存缓冲区所在的物理页面 */ 
+  unsigned int    bv_len; /* 内存缓冲区大小(字节) */
+  unsigned int    bv_offset;  /* 缓冲区在该物理页面上的偏移量(字节) */
+};
+
+struct bio {
+  sector_t            bi_sector;    /* 需要传输的第一个扇区号(磁盘中的位置) */
+  struct bio          *bi_next;    /* 请求队列中的下一个bio */
+  struct block_device    *bi_bdev;   /* 相关的块设备 */
+  unsigned long        bi_flags;    /* bio标志位 */
+  unsigned long        bi_rw;        /* I/O操作类型及优先级 */
+
+  unsigned short  bi_vcnt;    /* bio_vec数组中段的数目 */
+  unsigned short  bi_idx;        /* bio_vec数组中段的当前索引值 */
+
+  /* Number of segments in this BIO after
+   * physical address coalescing is performed.
+   */
+  unsigned int        bi_phys_segments;   /* 结合后的片段数 */
+
+  unsigned int        bi_size;    /* 剩余的I/O数量 */
+
+  unsigned int        bi_seg_front_size;  /* bio_vec数组中第一个可合并段的大小 */
+  unsigned int        bi_seg_back_size;   /* bio_vec数组中最后一个可合并段的大小 */
+
+  unsigned int        bi_max_vecs;    /* bio_vec数组中允许的最大段数 */
+
+  unsigned int        bi_comp_cpu;    /* completion CPU */
+
+  atomic_t            bi_cnt;        /* bio的引用计数器 */
+
+  struct bio_vec  *bi_io_vec;    /* 指向bio的bio_vec数组中的段的指针(内存中的位置) */
+
+  bio_end_io_t        *bi_end_io;   /* bio的I/O操作结束时调用的方法 */
+
+  void                  *bi_private;    /* 供该bio结构体的创建者(通用块层和块设备驱动程序的I/O完成方法)使用 */
+#if defined(CONFIG_BLK_DEV_INTEGRITY)
+  struct bio_integrity_payload *bi_integrity;  /* data integrity */
+#endif
+
+  bio_destructor_t    *bi_destructor;    /* 释放bio时调用的析构方法(通常是bio_destructor()方法) */
+
+  /*
+   * We can inline a number of vecs at the end of the bio, to avoid
+   * double allocations for a small number of bio_vecs. This member
+   * MUST obviously be kept at the very end of the bio.
+   */
+  struct bio_vec    bi_inline_vecs[0];  /* 内嵌在结构体末尾的 bio 向量，用于防止出现二次申请少量的 bio_vecs */
+};
+</code></pre>
+<p>bio中的每个段是由一个bio_vec数据结构描述的，其中最重要的几个成员变量是bi_io_vecs、 bi_vcnt和bi_idx。<br>bi_io_vecs指向一个bio_vec结构体数组，该结构体链表包含了一个特定I/O操作所需要使用到的所有段（segment）。<br>每个bio_vec结构都是一个形式为<page, offset,="" len="">的向量，它描述的是一个特定的段：段所在的物理页、块在物理页中的偏移量、从给定偏移量开始的块长度。<br>整个bio_io_vec结构体数组表示了一个完整的缓冲区。<br>因此即使一个缓冲区分散在内存的多个位置上，bio结构体也能对内核保证I/O操作的执行，这样的就叫做向量I/O（vectored I/O，或scatter/gather I/O）。</page,></p>
+<p>在每个给定的块设备I/O操作中，bi_vcnt域用来描述bi_io_vec所指向的bio_vec数组中的向量数目。<strong>当通用块层开始执行请求，需要使用各个片段时，bi_idx就会不断更新，总是指向当前片段</strong>。通用块层通过它可以跟踪块设备I/O操作的完成进度。</p>
+<p>bio作为通用块层的主要数据结构，既描述了操作磁盘的位置(bi_sector)，又描述了内存的位置(bi_io_vec)，是上层内核vfs与下层驱动的连接纽带。</p>
+<h3 id="磁盘和磁盘分区-gendisk"><a href="#磁盘和磁盘分区-gendisk" class="headerlink" title="磁盘和磁盘分区: gendisk"></a>磁盘和磁盘分区: gendisk</h3><p>磁盘是一个由通用块层处理的逻辑设备，由gendisk结构体描述：</p>
+<pre><code class="lang-c">struct disk_part_tbl {
+  struct rcu_head rcu_head;
+  int len;
+  struct hd_struct __rcu *last_lookup;
+  struct hd_struct __rcu *part[];   /* 描述分区表的hd_struct数组 */
+};
+struct gendisk {
+  int major;            /* 磁盘主设备号 */
+  int first_minor;  /* 与磁盘关联的第一个次设备号 */
+  int minors;     /* 与磁盘关联的次设备号范围 */
+
+  char disk_name[DISK_NAME_LEN];    /* 磁盘的标准名称 */
+  char *(*devnode)(struct gendisk *gd, mode_t *mode);
+
+  unsigned int events;        /* supported events */
+  unsigned int async_events;    /* async events, subset of all */
+
+  /* Array of pointers to partitions indexed by partno.
+   * Protected with matching bdev lock but stat and other
+   * non-critical accesses use RCU.  Always access through
+   * helpers.
+   */
+  struct disk_part_tbl __rcu *part_tbl;   /* 分区表指针 */
+  struct hd_struct part0;
+
+  const struct block_device_operations *fops; /* 块设备操作表的指针 */
+  struct request_queue *queue;  /* 指向磁盘请求队列的指针 */
+  void *private_data; /* 块设备驱动程序的基本数据 */
+
+  int flags;  /* 磁盘类型的标志 */
+  struct device *driverfs_dev;  // FIXME: remove
+  struct kobject *slave_dir;
+
+  struct timer_rand_state *random;  
+  atomic_t sync_io;        /* 写入磁盘的扇区数计数器, 仅为RAID使用 */
+  struct disk_events *ev;
+#ifdef  CONFIG_BLK_DEV_INTEGRITY
+  struct blk_integrity *integrity;
+#endif
+  int node_id;
+};
+</code></pre>
+<p>需要关注的是每个gendisk对象包含一个request_queue类型的字段，表示每个磁盘（而非分区）单独维护一个I/O请求队列。</p>
+<p>磁盘的分区表使用结构体disk_part_tbl表示，其地址保存在每个磁盘gendisk对象的part_tbl成员中。disk_part_tbl内部用一个hd_struct结构体的数组保存分区表的信息，每个hd_struct结构体表示磁盘的一个分区。</p>
+<p>描述磁盘分区的hd_struct结构体定义:</p>
+<pre><code class="lang-c">struct hd_struct {
+  sector_t start_sect;  /* 起始扇区 */
+  sector_t nr_sects;  /* 分区的长度(扇区数) */
+  sector_t alignment_offset;
+  unsigned int discard_alignment;
+  struct device __dev;    /* 从设备驱动模型基类结构device继承 */
+  struct kobject *holder_dir;
+  int policy;     /* 如果分区是只读的则为1, 否则为0 */
+  int partno;     /* 磁盘中分区的相对索引 */
+  struct partition_meta_info *info; /* 分区元数据 */
+#ifdef CONFIG_FAIL_MAKE_REQUEST
+  int make_it_fail;
+#endif
+  unsigned long stamp;      /* 统计请求队列使用情况的时间戳 */
+  atomic_t in_flight[2];    /* 当前请求队列中与该分区相关联的I/O数 */
+#ifdef    CONFIG_SMP
+  struct disk_stats __percpu *dkstats;
+#else
+  struct disk_stats dkstats;  /* 硬盘性能统计信息 */
+#endif
+  atomic_t ref;
+  struct rcu_head rcu_head;
+};
+</code></pre>
+<p>其中需要关注的是disk_stats类型的字段dkstats，该字段主要用于保存分区的性能统计信息，同时内核会将其中的数据同步到<code>/proc/diskstats</code>文件中，iostat正是依赖这个文件来获取和计算磁盘分区的各个实时性能参数，后文会详细展开说明。</p>
+<h3 id="I-O请求队列-request-queue"><a href="#I-O请求队列-request-queue" class="headerlink" title="I/O请求队列: request_queue"></a>I/O请求队列: request_queue</h3><p>请求队列由一个大的结构体request_queue表示:</p>
+<pre><code class="lang-c">struct request_queue
+{
+  /*
+   * Together with queue_head for cacheline sharing
+   */
+  struct list_head    queue_head;
+  struct request        *last_merge;
+  struct elevator_queue    *elevator;
+
+  /*
+   * the queue request freelist, one for reads and one for writes
+   */
+  struct request_list    rq;   /* 请求结构体的freelist */
+
+  /* 不同情况下执行的回调方法： */
+  request_fn_proc        *request_fn;
+  make_request_fn        *make_request_fn;
+  prep_rq_fn        *prep_rq_fn;
+  unprep_rq_fn        *unprep_rq_fn;
+  merge_bvec_fn        *merge_bvec_fn;
+  softirq_done_fn        *softirq_done_fn;
+  rq_timed_out_fn        *rq_timed_out_fn;
+  dma_drain_needed_fn    *dma_drain_needed;
+  lld_busy_fn        *lld_busy_fn;
+
+  // ...
+};
+</code></pre>
+<p>请求队列（request_queue）实质上是一个<strong>双向链表</strong>，每个元素是一个请求(request结构体).<br>request_queue结构体中的queue_head成员存放链表的头。<br>结构体成员make_request_fn为I/O请求创建一个request结构体，然后把交给I/O调度程序。<br>I/O调度程序提供了几种预先定义好的元素排序方式（调度算法），后续会详细展开说明。<br>而成员request_fn存放来自设备驱动程序的请求处理函数。</p>
+<p>每个请求队列都有一个允许处理的最大请求数，request_queue的nr_requests字段存放了每个数据传送方向所允许的最大请求数（默认读写队列的最大请求数都是128个）。<br>如果待处理的读/写请求数超过了允许的最大值，那么队列会被标志已满，需要把请求加入到某个传送方向的可阻塞进程被放置到request_list结构所对应的等待队列中睡眠。</p>
+<h3 id="I-O请求-request"><a href="#I-O请求-request" class="headerlink" title="I/O请求: request"></a>I/O请求: request</h3><p>每个块设备的待处理请求都是用一个结构体request表示的:</p>
+<pre><code class="lang-c">struct request {
+  struct list_head queuelist; /* 用于挂在请求队列链表的节点，只能使用函数blkdev_dequeue_request访问，不能直接访问 */
+  struct list_head donelist;  /* 用于挂在已完成请求链表的节点 */  
+  struct request_queue *q;    /* 指向请求队列的指针 */  
+  unsigned int cmd_flags;     /* 命令标识 */  
+  enum rq_cmd_type_bits cmd_type;  /* 命令类型 */  
+
+  /* 各种各样的扇区计数: */  
+  /* 为提交I/O维护bio横断面的状态信息，其中hard_*成员是通用块层内部更新的，驱动程序不应该修改 */  
+  sector_t sector;     /* 要传送的下一个扇区号 */  
+  sector_t hard_sector;      /* 要传送的下一个扇区号 */  
+  unsigned long nr_sectors;  /* 整个请求还需要传送的扇区数 */  
+  unsigned long hard_nr_sectors; /* 整个请求中还需要传送的扇区数 */  
+  unsigned int current_nr_sectors;  /* 当前bio的当前段中还需要传送的扇区数 */  
+  unsigned int hard_cur_sectors;    /* 当前bio的当前段中还需要传送的扇区数 */
+  struct bio *bio;     /* 请求中第一个未完成传送操作的bio */
+  struct bio *biotail; /* 请求链表中末尾的bio */
+  struct hlist_node hash;   /* 链入一个哈希表(用来查找与新bio相邻的请求) */
+
+  /* rb_node仅用在I/O调度器中把请求放到一棵红黑树上，当请求被移到分发队列中时，请求将被删除。 */
+  /* 因此，completion_data(用于给底层驱动保存一些额外的信息)可与rb_node分享空间 */
+  union {
+      struct rb_node rb_node;   /* 排序/查找 */
+      void *completion_data;  
+  };
+
+  struct gendisk *rq_disk;    /* 请求所引用的磁盘 */
+  struct hd_struct *part;     /* 请求所引用的分区 */
+  unsigned long start_time;   /* 请求进入队列的时间(用jiffies表示) */
+
+  unsigned int timeout;     /* 请求的超时 */
+  int retries;
+
+  rq_end_io_fn *end_io;   /* 请求完成时的回调函数 */
+  void *end_io_data;
+
+  // ...
+};
+</code></pre>
+<p>每个请求(request)包含一个或多个bio结构.<br>最初, 通用块层创建一个<strong>仅包含一个bio结构的请求</strong>.<br>然后I/O调度程序可能向初始的bio中增加一个新段, 也可能将另一个bio结构链接到请求中(当新数据与请求中已存在的数据物理相邻), 从而扩展该请求.<br>request结构体中的bio字段指向请求中的第一个bio结构, 而biotail字段指向最后一个bio结构. </p>
+<p>一个request实例中的几个成员字段值可能是动态变化的.<br>例如一旦bio中引用的数据块全部传送完毕,<br>bio字段立即更新从而指向请求链表中的下一个bio.<br>在此期间新的bio可能被加入到请求链表的尾部, 所以biotail的指向也可能改变. </p>
+<h3 id="各个结构体类型的关系"><a href="#各个结构体类型的关系" class="headerlink" title="各个结构体类型的关系"></a>各个结构体类型的关系</h3><img src="/笔记/iostat学习笔记/kernel_IO_structs.jpeg">
+<p>图片来源：<a href="http://blog.csdn.net/jianchi88/article/details/7212599" target="_blank" rel="noopener">Linux设备驱动—块设备（二）之相关结构体</a></p>
+<h2 id="向通用块层提交请求的过程：general-make-request"><a href="#向通用块层提交请求的过程：general-make-request" class="headerlink" title="向通用块层提交请求的过程：general_make_request"></a>向通用块层提交请求的过程：general_make_request</h2><p>当内核向通用块层提交一个I/O请求操作时，先执行<code>bio_alloc()</code>函数分配一个新的bio描述符并初始化。<br>初始化bio后，内核调用<code>generic_make_request()</code>函数，该函数是通用块层的主要入口点，它主要执行以下操作：</p>
+<ol>
+<li>检查bio-&gt;bi_sector没有超过块设备的扇区数</li>
+<li>获取与块设备(bio-&gt;bdev)相关的请求队列q</li>
+<li>检查该bio处理的扇区是否超过请求队列单个请求的最大扇区数</li>
+<li>调用<code>blk_partition_remap()</code>函数检查块设备是否指的是一个磁盘分区。<br>如果是，则从bio-&gt;bi_bdev获取分区的hd_struct描述符，并把相对于分区的起始扇区号转化为相对于整个磁盘的扇区号。此后，通用块层、I/O调度程序以及设备驱动程序将忽略分区，直接作用于整个磁盘</li>
+<li>再次检查是否超过块设备的范围</li>
+<li>调用回调函数<code>q-&gt;make_request_fn</code>将bio请求插入请求队列q中（2.6内核版本默认为<code>__make_request()</code>）</li>
+<li>返回</li>
+</ol>
+<h2 id="向I-O调度程序发出请求的过程：make-request-fn"><a href="#向I-O调度程序发出请求的过程：make-request-fn" class="headerlink" title="向I/O调度程序发出请求的过程：make_request_fn"></a>向I/O调度程序发出请求的过程：make_request_fn</h2><p>如前所述，<code>generic_make_request()</code>函数调用请求队列描述符的<code>make_request_fn</code>方法向I/O调度程序发送一个请求。<br>在内核版本2.6中，该方法默认由<code>__make_request()</code>函数实现。<br>该函数接收一个request_queue类型的描述符q和一个bio结构的描述符bio作为其参数，然后执行如下操作：</p>
+<ol>
+<li>如果需要，调用<code>blk_queue_bounce()</code>函数建立一个<a href="https://baike.baidu.com/item/%E5%9B%9E%E5%BC%B9%E7%BC%93%E5%86%B2/10678809" target="_blank" rel="noopener">回弹缓冲区</a>。如果回弹缓冲区被建立，<code>__make_request()</code>函数将对该缓冲区而不是原先的bio结构进行操作</li>
+<li>调用I/O调度程序的<code>elv_queue_empty()</code>函数检查请求队列中是否存在待处理请求。注意：调度队列可能是空的，但是I/O调度程序的<strong>其他队列</strong>可能包含待处理请求。如果没有待处理请求，那么调用<code>blk_plug_device()</code>函数，以防止请求被设备驱动程序处理，然后执行第4步。</li>
+<li>如果插入的请求队列包含待处理请求，调用I/O调度程序的<code>elv_merge()</code>函数<strong>检查新的bio结构是否可以并入已存在的请求中</strong>。若可以，则试图将该请求与可以队首或队尾的请求合并，<strong>合并后跳转到第7步终止函数</strong>；否则继续下一步。 </li>
+<li>bio必须被插入到一个新的请求中，调用<code>get_request_wait()</code>分配一个新的request结构体。</li>
+<li>初始化request，工作流程包括：<ol>
+<li>根据bio描述符的内容初始化各个字段，包括扇区数、当前bio及当前段</li>
+<li>设置flags中的REQ_CMD标志（表明是读或写操作）</li>
+<li>如果第一个bio段的页框放在低端内存，则将buffer字段设置为缓冲区的线性地址</li>
+<li>将rq_disk字段设置为bio-&gt;bi_bdev-&gt;bd_disk的地址</li>
+<li>将bio插入请求队列</li>
+<li>将start_time字段设置为jiffies的值</li>
+</ol>
+</li>
+<li>所有操作全部完成。在终止前，检查如果设置了bio-&gt;bi_rw中的BIO_RW_SYNC标志，则对请求队列调用<code>generic_unplug_device()</code>函数，立即激活设备驱动程序处理队列的请求。</li>
+</ol>
+<h1 id="iostat"><a href="#iostat" class="headerlink" title="iostat"></a>iostat</h1><p>iostat是I/O statistics（输入/输出统计）的缩写，iostat工具将对系统的磁盘操作活动进行监视。它的特点是汇报磁盘活动统计情况，同时也会汇报出CPU使用情况。<br>同vmstat一样，iostat也有一个弱点，就是它不能对某个进程进行深入分析，仅对系统的整体情况进行分析。</p>
+<h2 id="基本实现原理"><a href="#基本实现原理" class="headerlink" title="基本实现原理"></a>基本实现原理</h2><p>Linux 内核提供了一种通过 /proc 文件系统(伪文件系统)，在运行时访问内核内部数据结构、改变内核设置的机制。</p>
+<p>最初开发 /proc 文件系统是为了提供有关系统中进程的信息。<br>但是由于这个文件系统非常有用，因此内核中的很多元素也开始使用它来报告信息，或启用动态运行时配置。</p>
+<p>/proc 文件系统包含了一些目录（用作组织信息的方式）和虚拟文件。<br>虚拟文件可以向用户呈现内核中的一些信息，也可以用作一种从用户空间向内核发送信息的手段。<br>iostat 就是通过读取这些虚拟文件来获取CPU、块设备的使用情况的。</p>
+<p>iostat主要依赖于两个虚拟文件：<code>/prop/stat</code>(CPU实时状态监控)以及<code>/proc/diskstats</code>(块设备实时状态监控)。<br>本文着重分析<strong>diskstats文件</strong>在内核处理I/O请求过程中的更新。</p>
+<h2 id="proc-stat-文件分析"><a href="#proc-stat-文件分析" class="headerlink" title="/proc/stat 文件分析"></a>/proc/stat 文件分析</h2><pre><code># cat /proc/stat
+cpu  110861 181 555675 78075105 6363396 0 9505 0 0 0
+cpu0 57981 92 282580 39097145 3123930 0 4709 0 0 0
+cpu1 52879 88 273095 38977960 3239466 0 4796 0 0 0
+intr 158740214 20 10 0 0 57 0 3 0 0 6 0 35 15 0 0 0 0 0 0 0 0 0 0 0 0 18176 1 0 20 0 188460 3 0 167762 0 7991724 0 5084866 0 6035296 0 6177406 0 76604 0 72744 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+ctxt 231648757
+btime 1517643700
+processes 28629
+procs_running 1
+procs_blocked 0
+softirq 106725500 2 53615919 0 500475 0 0 32 24172209 0 28436863
+</code></pre><p>根据<a href="http://man7.org/linux/man-pages/man5/proc.5.html" target="_blank" rel="noopener">man proc</a>可以看到:<br>第一行显示的是汇总的CPU统计信息，第二第三行的 cpu0、cpu1 分别表示两个逻辑CPU的相关数据。<br>第四行<code>intr</code>表示自系统启动到现在发生的系统中断(硬件)次数。<br>第五行<code>ctxt</code>表示进程切换的次数。<br>第六行<code>btime</code>表示系统启动的时间（以unix时间戳表示）。<br>第七行<code>processes</code>表示自系统启动到现在 fork 的进程总数。<br>第八行<code>procs_running</code>表示处于 runnable 状态的进程个数。<br>第九行<code>procs_blocked</code>表示处于 blocked 状态的进程个数。<br>第十行<code>softirq</code>表示各种软件中断发生的次数。</p>
+<h2 id="proc-diskstats-文件分析"><a href="#proc-diskstats-文件分析" class="headerlink" title="/proc/diskstats 文件分析"></a>/proc/diskstats 文件分析</h2><pre><code># cat /proc/diskstats
+253       0 vda 37360 17 1784146 86663 163791 105909 9388280 6893851 0 143952 6980407
+253       1 vda1 37242 17 1782338 86490 160625 105909 9388280 6892606 0 142781 6978996
+253      16 vdb 5555701 0 44482846 18940368 10847398 494735595 7194283112 951346938 0 50716405 970285279
+253      17 vdb1 4832454 0 38662041 17571294 392392 194185 267009408 473999941 0 7036133 491570582
+253      18 vdb2 131940 0 1057273 212544 5659449 90069 2487535888 1381317020 0 16226827 1381529281
+253      32 vdc 2921144 0 23382908 16891258 9582117 364228627 6018812992 4047444938 0 40063302 4064335281
+253      33 vdc1 2592512 0 20741753 15840688 266563 35281 181828504 103572044 0 3350938 119412476
+253      34 vdc2 125098 0 1002441 57908 5593445 76553 2462180128 1364974045 0 15723424 1365029277
+253      48 vdd 3888656 0 31123004 16844034 9496985 364077866 6016379512 4038748329 0 40606067 4055597784
+253      49 vdd1 3601897 0 28816833 15793736 266558 35272 181828392 103544601 0 3882066 119337738
+253      50 vdd2 120312 0 964153 58429 5553776 76293 2461307784 1363220100 0 15745725 1363277875
+253      64 vde 5112942 0 40915653 3418211 5346013 363765070 4415766216 3180011507 0 29932692 3183430274
+253      65 vde1 4751347 0 38011993 2329368 251027 35195 171340648 98125820 0 3179339 100454539
+253      66 vde2 452 0 4954 117 1218193 51179 831873968 474804824 0 5378425 474804474
+253      80 vdf 38196 0 307210 766787 458562 51453 436149560 292950758 0 3374209 293717487
+253      96 vdg 33490 0 269562 733330 458691 49240 436149008 295449025 0 3338442 296182433
+</code></pre><p>每个设备及其分区都单独占一行，每行包含了该设备/设备分区的设备号、设备名及其他一些实时更新的统计数据。<br>每行前三个字段分别为主设备号、次设备号、设备名。<br>根据内核<a href="https://www.kernel.org/doc/Documentation/iostats.txt" target="_blank" rel="noopener">iostats文档</a>描述，<br>之后从左到右的各个字段及意义如下:</p>
+<div class="table-container">
+<table>
+<thead>
+<tr>
+<th>字段编号</th>
+<th>示例值</th>
+<th>内核变量名</th>
+<th>解释</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>F1</td>
+<td>37360</td>
+<td>rd_ios</td>
+<td>完成的读请求次数</td>
+</tr>
+<tr>
+<td>F2</td>
+<td>17</td>
+<td>rd_merges</td>
+<td>被合并的读请求个数</td>
+</tr>
+<tr>
+<td>F3</td>
+<td>1784146</td>
+<td>rd_sectors</td>
+<td>读请求扇区个数的总和</td>
+</tr>
+<tr>
+<td>F4</td>
+<td>86663</td>
+<td>rd_ticks</td>
+<td>读请求花费的时间总和(毫秒)</td>
+</tr>
+<tr>
+<td>F5</td>
+<td>163791</td>
+<td>wr_ios</td>
+<td>完成的写请求次数</td>
+</tr>
+<tr>
+<td>F6</td>
+<td>105909</td>
+<td>wr_merges</td>
+<td>被合并的写请求个数</td>
+</tr>
+<tr>
+<td>F7</td>
+<td>9388280</td>
+<td>wr_sectors</td>
+<td>写请求扇区个数的总和</td>
+</tr>
+<tr>
+<td>F8</td>
+<td>6893851</td>
+<td>wr_ticks</td>
+<td>写请求花费的时间总和(毫秒)</td>
+</tr>
+<tr>
+<td>F9</td>
+<td>0</td>
+<td>in_flight</td>
+<td>块设备请求队列中的I/O请求数</td>
+</tr>
+<tr>
+<td>F10</td>
+<td>143952</td>
+<td>io_ticks</td>
+<td>块设备队列非空时间总和</td>
+</tr>
+<tr>
+<td>F11</td>
+<td>6980407</td>
+<td>time_in_queue</td>
+<td>块设备队列非空时间加权总和</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>上述各个字段全部都是<strong>累加值</strong>。</p>
+<p>实际上这些字段大多来自于内核头文件<code>genhd.h</code>中定义的<code>disk_stats</code>和<code>hd_struct</code>结构体：</p>
+<pre><code class="lang-c">/* include/linux/genhd.h */
+struct disk_stats {
+  unsigned long sectors[2];       /* [2]: for READs and WRITEs */
+  unsigned long ios[2];
+  unsigned long merges[2];
+  unsigned long ticks[2];
+  unsigned long io_ticks;
+  unsigned long time_in_queue;
+};
+</code></pre>
+<p>这几个字段均在内核处理I/O请求过程中实时更新，更新代码主要涉及以下几个函数：</p>
+<h3 id="part-round-stats"><a href="#part-round-stats" class="headerlink" title="part_round_stats"></a>part_round_stats</h3><p><code>part_round_stats</code>主要用于更新diskstat中的io_ticks和time_in_queue，<br>每当队列中的请求发生变化（开始或完成）时都会被调用。</p>
+<pre><code class="lang-c">/* blk-core.c */
+/* 
+ * part_round_stats 获取CPU时间(jiffies)，更新diskstat的time_in_queue和io_ticks
+ * @param cpu       当前活跃的CPU编号
+ * @param part      目标磁盘
+ */
+void part_round_stats(int cpu, struct hd_struct *part) {
+  unsigned long now = jiffies;
+
+  /* 实际通过调用part_round_stats_single来处理 */
+  if (part-&gt;partno)
+    part_round_stats_single(cpu, &amp;part_to_disk(part)-&gt;part0, now);
+  part_round_stats_single(cpu, part, now);
+}
+
+static void part_round_stats_single(int cpu, struct hd_struct *part,
+            unsigned long now) {
+  if (now == part-&gt;stamp)
+    return;
+
+  /* 如果磁盘分区队列非空，则更新time_in_queue和io_ticks */
+  if (part_in_flight(part)) {
+    /* 计算time_in_queue += io_ticks * 队列中等待的I/O请求个数 */
+    __part_stat_add(cpu, part, time_in_queue,
+        part_in_flight(part) * (now - part-&gt;stamp));
+
+    /* 计算io_ticks += (now - part-&gt;stamp) */
+    __part_stat_add(cpu, part, io_ticks, (now - part-&gt;stamp));
+  }
+
+  /* 更新磁盘分区的时间戳 */
+  part-&gt;stamp = now;
+}
+</code></pre>
+<h3 id="drive-stat-acct"><a href="#drive-stat-acct" class="headerlink" title="drive_stat_acct"></a>drive_stat_acct</h3><p><code>drive_stat_acct()</code>函数主要用于更新磁盘的diskstat统计信息。<br>这个函数中负责更新merge，io_ticks，time_in_queue字段。</p>
+<p>调用链：</p>
+<pre><code>__make_request  -&gt;  drive_stat_acct(req, 1)
+                -&gt;  add_acct_request    -&gt;  drive_stat_acct(req, 1)
+                -&gt;  attempt_plug_merge  -&gt;  bio_attempt_back_merge  -&gt;  drive_stat_acct(req, 0)
+                                        -&gt;  bio_attempt_front_merge -&gt;  drive_stat_acct(req, 0)
+</code></pre><p>其中<code>__make_request</code>就是之前提到的向I/O调度程序发出请求主要的实现函数。</p>
+<pre><code class="lang-c">/* blk-core.c */
+/* 
+ * drive_stat_acct  更新diskstat，在__make_request函数中，以及合并request后会被调用
+ * @param rq        I/O请求体
+ * @param new_io    是否为新的I/O request
+ */
+static void drive_stat_acct(struct request *rq, int new_io){
+  struct hd_struct *part;
+  /* 从request类型的变量req中获取请求类型：R/W */
+  int rw = rq_data_dir(rq);
+  int cpu;
+
+  if (!blk_do_io_stat(rq))
+    return;
+
+  cpu = part_stat_lock();
+
+  if (!new_io) {
+    /* 如果不是新的IO请求，而是merge产生的 */
+    part = rq-&gt;part;
+
+    /* 则 merges + 1 */
+    part_stat_inc(cpu, part, merges[rw]);
+  } else {
+    /* 如果是新的IO，先获取访问的扇区 */
+    part = disk_map_sector_rcu(rq-&gt;rq_disk, blk_rq_pos(rq));
+    if (!hd_struct_try_get(part)) {
+      part = &amp;rq-&gt;rq_disk-&gt;part0;
+      hd_struct_get(part);
+    }
+
+    /* 更新io_ticks和time_in_queue */
+    part_round_stats(cpu, part);
+
+    /* 读/写对应的 in_flight+1 */
+    part_inc_in_flight(part, rw);
+    rq-&gt;part = part;
+  }
+
+  part_stat_unlock();
+}
+</code></pre>
+<h3 id="blk-account-io-completion，blk-account-io-done"><a href="#blk-account-io-completion，blk-account-io-done" class="headerlink" title="blk_account_io_completion，blk_account_io_done"></a>blk_account_io_completion，blk_account_io_done</h3><p>这两个函数也都是用于更新diskstat统计信息的，但是<br><code>blk_account_io_completion()</code>是在一个请求<strong>部分完成</strong>时调用的，主要更新diskstat中的扇区数(sectors)字段；<br>而<code>blk_account_io_done()</code>是在一个请求被块设备驱动程序<strong>全部完成</strong>时调用，主要更新ios, ticks、io_ticks和time_in_queue。</p>
+<p>调用链：</p>
+<pre><code>blk_end_request     -&gt;
+blk_end_request_all -&gt; blk_end_bidi_request -&gt; blk_update_bidi_request -&gt; blk_update_request -&gt; blk_account_io_completion
+                                           \-----(if no more data)------&gt; blk_finish_request -&gt; blk_account_io_done
+</code></pre><p>其中<code>blk_end_request</code>是用于在块设备驱动程序(如scsi驱动程序)处理请求的过程中，请求被部分完成时调用的函数。<br><code>blk_end_request_all</code>是在一个请求被全部完成后，块设备驱动程序报告调用的函数。</p>
+<pre><code class="lang-c">/* blk-core.c */
+/*
+ * blk_account_io_completion  一个req被部分完成调用，更新diskstat中的sectors
+ * @param req                 I/O请求体
+ * @param bytes               完成了多少字节
+ */
+void blk_account_io_completion(struct request *req, unsigned int bytes){
+  if (blk_do_io_stat(req)) {
+    const int rw = rq_data_dir(req);
+    struct hd_struct *part;
+    int cpu;
+
+    cpu = part_stat_lock();
+    part = req-&gt;part;
+
+    /* 右移9位，相当于除以512字节，即一个扇区的字节数 */
+    part_stat_add(cpu, part, sectors[rw], bytes &gt;&gt; 9);
+    part_stat_unlock();
+  }
+}
+
+/*
+ * blk_account_io_done  一个req被全部完成调用，更新diskstat中的ios,ticks,io_ticks,time_in_queue
+ * @param req           I/O请求体
+ */
+static void blk_account_io_done(struct request *req) {
+  if (blk_do_io_stat(req) &amp;&amp; !(req-&gt;cmd_flags &amp; REQ_FLUSH_SEQ)) {
+    /* 获取Δt */
+    unsigned long duration = jiffies - req-&gt;start_time;
+
+    /* 从request类型的变量req中获取请求类型：R/W */
+    const int rw = rq_data_dir(req);
+    struct hd_struct *part;
+    int cpu;
+
+    cpu = part_stat_lock();
+    part = req-&gt;part;
+
+    /* 完成一次io, 递增rd_ios/wr_ios */
+    part_stat_inc(cpu, part, ios[rw]);
+
+    /* 将io的持续时间(duration)，加到rd_ticks/wr_ticks上 */
+    part_stat_add(cpu, part, ticks[rw], duration);
+
+    /* 更新io_ticks和time_in_queue */
+    part_round_stats(cpu, part);
+
+    /* 对应的infight-1 */
+    part_dec_in_flight(part, rw);
+
+    hd_struct_put(part);
+    part_stat_unlock();
+  }
+}
+</code></pre>
+<h2 id="输出参数及计算方式"><a href="#输出参数及计算方式" class="headerlink" title="输出参数及计算方式"></a>输出参数及计算方式</h2><pre><code># iostat -mx 2
+avg-cpu:  %user   %nice %system %iowait  %steal   %idle
+           0.13    0.00    0.69    7.81    0.00   91.36
+
+Device:   rrqm/s   wrqm/s     r/s     w/s    rMB/s    wMB/s avgrq-sz avgqu-sz   await r_await w_await  svctm  %util
+vda         0.00     0.26    0.09    0.39     0.00     0.01    56.37     0.02   35.29    2.32   42.97   0.73   0.03
+vdb         0.00  1203.92   13.52   26.40     0.05     8.55   441.30     2.36   59.15    3.41   87.70   3.09  12.34
+vdc         0.00   886.34    7.11   23.32     0.03     7.15   483.25     9.89  325.06    5.78  422.40   3.20   9.75
+vdd         0.00   885.97    9.46   23.11     0.04     7.15   451.79     9.87  302.98    4.33  425.27   3.03   9.88
+vde         0.00   885.21   12.44   13.01     0.05     5.25   426.11     7.75  304.37    0.67  594.84   2.86   7.28
+vdf         0.00     0.13    0.09    1.12     0.00     0.52   878.61     0.71  591.27   20.08  638.85   6.79   0.82
+vdg         0.00     0.12    0.08    1.12     0.00     0.52   886.70     0.72  601.78   21.90  644.11   6.78   0.81
+</code></pre><p>在这个命令下输出的信息主要分为两部分：CPU利用率(CPU Utilization)和设备利用率(Device Utilization)。</p>
+<h3 id="CPU利用率"><a href="#CPU利用率" class="headerlink" title="CPU利用率"></a>CPU利用率</h3><p>在Linux/Unix下，CPU利用率分为<strong>用户态，内核态和空闲态</strong>三种模式，<br>分别表示CPU处于用户态执行的时间，系统内核执行的时间，和系统空闲进程执行的时间的百分比。</p>
+<p>在输出标签<code>avg-cpu</code>后显示的信息就是CPU处在各个模式的平均利用率。<br>在多处理器的系统中这些信息是通过分别计算各个处理器的相应数据后，取平均值输出。</p>
+<p>由于各个CPU在各个模式下的利用率内核都会实时输出在iostat 可直接从<code>/proc/stat</code>文件中读取解析，不需要额外计算。</p>
+<h4 id="user"><a href="#user" class="headerlink" title="%user"></a>%user</h4><p>%user 表示CPU处在用户态下(即执行用户态进程)的时间百分比。</p>
+<h4 id="nice"><a href="#nice" class="headerlink" title="%nice"></a>%nice</h4><p><a href="https://en.wikipedia.org/wiki/Nice" target="_blank" rel="noopener">Nice值</a>是类UNIX操作系统中表示静态优先级的数值。<br>静态优先级是进程启动时分配的优先级，可以用nice()和sched_setscheduler()系统调用重新设定，否则在进程运行过程中一直保持恒定。<br>Nice值的范围是-20~+19，默认值为0。拥有Nice值越大的进程的实际优先级越小。</p>
+<p>%nice 表示CPU在执行优先级较低的（参考<a href="http://man7.org/linux/man-pages/man5/proc.5.html" target="_blank" rel="noopener">man proc</a>），即Nice值大于0的用户态进程的时间百分比。</p>
+<h4 id="system"><a href="#system" class="headerlink" title="%system"></a>%system</h4><p>%system 表示CPU处在内核态下(即执行内核进程)的时间百分比。</p>
+<h4 id="iowait"><a href="#iowait" class="headerlink" title="%iowait"></a>%iowait</h4><p>%iowait 表示CPU在等待I/O完成的时间百分比。</p>
+<p>实际上这个数据并不可靠，原因是：</p>
+<ol>
+<li>CPU不会等待I/O完成，iowait只是某个进程在等待I/O完成的时间。当进程发出一个I/O请求使CPU进入空闲等待时，CPU会调度另一个进程来继续执行。</li>
+<li>对于多核CPU，正在等待I/O完成的进程不会在任何CPU上执行，因此CPU等待I/O完成的时间难以计算。</li>
+<li>这个字段的值会在某些情况下减少</li>
+</ol>
+<h4 id="steal"><a href="#steal" class="headerlink" title="%steal"></a>%steal</h4><p>%steal 表示CPU在执行其他操作系统(如hypervisor需要执行虚拟化环境下的进程)的时间百分比。</p>
+<h4 id="idle"><a href="#idle" class="headerlink" title="%idle"></a>%idle</h4><p>%idle 表示CPU在执行空闲进程的时间百分比。</p>
+<h3 id="块设备利用率"><a href="#块设备利用率" class="headerlink" title="块设备利用率"></a>块设备利用率</h3><p>iostat 按每个物理设备或分区给出了使用率的统计报告。<br>如前所述，以下各个指标都是通过diskstat文件计算得的，因此公式中的变量名直接引用diskstat官方文档:</p>
+<div class="table-container">
+<table>
+<thead>
+<tr>
+<th>字段编号</th>
+<th>示例值</th>
+<th>内核变量名</th>
+<th>解释</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>F1</td>
+<td>37360</td>
+<td>rd_ios</td>
+<td>完成的读请求次数</td>
+</tr>
+<tr>
+<td>F2</td>
+<td>17</td>
+<td>rd_merges</td>
+<td>被合并的读请求个数</td>
+</tr>
+<tr>
+<td>F3</td>
+<td>1784146</td>
+<td>rd_sectors</td>
+<td>读请求扇区个数的总和</td>
+</tr>
+<tr>
+<td>F4</td>
+<td>86663</td>
+<td>rd_ticks</td>
+<td>读请求花费的时间总和(毫秒)</td>
+</tr>
+<tr>
+<td>F5</td>
+<td>163791</td>
+<td>wr_ios</td>
+<td>完成的写请求次数</td>
+</tr>
+<tr>
+<td>F6</td>
+<td>105909</td>
+<td>wr_merges</td>
+<td>被合并的写请求个数</td>
+</tr>
+<tr>
+<td>F7</td>
+<td>9388280</td>
+<td>wr_sectors</td>
+<td>写请求扇区个数的总和</td>
+</tr>
+<tr>
+<td>F8</td>
+<td>6893851</td>
+<td>wr_ticks</td>
+<td>写请求花费的时间总和(毫秒)</td>
+</tr>
+<tr>
+<td>F9</td>
+<td>0</td>
+<td>in_flight</td>
+<td>块设备请求队列中的I/O请求数</td>
+</tr>
+<tr>
+<td>F10</td>
+<td>143952</td>
+<td>io_ticks</td>
+<td>块设备队列非空时间总和</td>
+</tr>
+<tr>
+<td>F11</td>
+<td>6980407</td>
+<td>time_in_queue</td>
+<td>块设备队列非空时间加权总和</td>
+</tr>
+</tbody>
+</table>
+</div>
+<h4 id="tps-Transfers-per-second"><a href="#tps-Transfers-per-second" class="headerlink" title="tps: Transfers per second"></a>tps: Transfers per second</h4><p>该设备上每秒提交的I/O请求(Transfer)个数。<br>由于多个I/O请求可能会被合并成一个请求提交给设备，因此每个Transfer的大小不是固定的。</p>
+<p>tps = [(Δrd_ios+Δwr_ios)/Δt]</p>
+<h4 id="rrqm-s-Read-requests-merged-per-second"><a href="#rrqm-s-Read-requests-merged-per-second" class="headerlink" title="rrqm/s: Read requests merged per second"></a>rrqm/s: Read requests merged per second</h4><p>设备的请求队列中，每秒被合并的读请求个数。</p>
+<p>rrqm/s = [Δrd_merges/Δt]</p>
+<h4 id="wrqm-s：Write-requests-merged-per-second"><a href="#wrqm-s：Write-requests-merged-per-second" class="headerlink" title="wrqm/s：Write requests merged per second"></a>wrqm/s：Write requests merged per second</h4><p>设备的请求队列中，每秒被合并的读请求个数。</p>
+<p>wrqm/s = [Δwr_merges/Δt]</p>
+<h4 id="r-s-Reads-per-second"><a href="#r-s-Reads-per-second" class="headerlink" title="r/s: Reads per second"></a>r/s: Reads per second</h4><p>该设备每秒完成的读操作次数。</p>
+<p>r/s = [Δrd_ios/Δt]</p>
+<h4 id="w-s-Writes-per-second"><a href="#w-s-Writes-per-second" class="headerlink" title="w/s: Writes per second"></a>w/s: Writes per second</h4><p>该设备每秒完成的写操作次数。</p>
+<p>w/s = [Δwr_ios/Δt]</p>
+<h4 id="avgrq-sz-Average-requests-size"><a href="#avgrq-sz-Average-requests-size" class="headerlink" title="avgrq-sz: Average requests size"></a>avgrq-sz: Average requests size</h4><p>每个I/O请求的平均大小(单位:扇区个数)。</p>
+<p>avgrq-sz = [Δrd_sectors+Δwr_sectors]/[Δrd_ios+Δwr_ios]</p>
+<h4 id="avgqu-sz-Average-queue-length-size"><a href="#avgqu-sz-Average-queue-length-size" class="headerlink" title="avgqu-sz; Average queue length size"></a>avgqu-sz; Average queue length size</h4><p>I/O请求的平均队列长度，即平均未完成的I/O请求数量。</p>
+<p>avgqu-sz=[Δtime_in_queue/Δt]</p>
+<h4 id="await-Await-time"><a href="#await-Await-time" class="headerlink" title="await: Await time"></a>await: Await time</h4><p>每个I/O请求被处理完成所需的平均时间(毫秒)。<br>这个时间包括I/O请求在请求队列中等待的时间，以及设备实际处理该请求的时间。</p>
+<p>await = [Δrd_ticks+Δwr_ticks]/[Δrd_ios+Δwr_ios]</p>
+<h4 id="svctm-Service-time"><a href="#svctm-Service-time" class="headerlink" title="svctm: Service time"></a>svctm: Service time</h4><p>设备实际处理每个I/O操作所需的平均时间(毫秒)，不包括请求在队列中等待的时间。</p>
+<p>需要注意的是这个指标并不可靠，也已经被弃用了，因为设备可能在同时处理多个I/O操作。</p>
+<p>svctm = [util/tput(transfer put)]，无意义。</p>
+<h4 id="util-Utilization"><a href="#util-Utilization" class="headerlink" title="%util: Utilization"></a>%util: Utilization</h4><p>该设备的繁忙（非空闲）时间比率。</p>
+<p>%util = [Δio_ticks/Δt]</p>
+<p>注意：这个值有时可能<strong>超过100</strong>，这是因为读操作不是原子操作，实际读到的分母Δt可能会比理论值要小。</p>
+<h2 id="实测分析"><a href="#实测分析" class="headerlink" title="实测分析"></a>实测分析</h2><h3 id="测试说明"><a href="#测试说明" class="headerlink" title="测试说明"></a>测试说明</h3><p>用fio和dd测试不同场景下iostat输出参数的变化情况。<br>测试环境为腾讯云1C1G云主机(配本地盘):</p>
+<ul>
+<li>操作系统: CentOS 7.4 64位</li>
+<li>CPU: 1核</li>
+<li>内存: 1GB</li>
+<li>测试盘: <ul>
+<li>50 GB本地数据盘</li>
+<li>50 GB普通云盘</li>
+</ul>
+</li>
+</ul>
+<p>使用的fio测试的模板为：</p>
+<pre><code>fio --refill_buffers --norandommap --randrepeat=0 --group_reporting --name=test \
+-ioengine=libaio -direct=1 -time_based -runtime=30 -size=5G -filename=${filename}  \
+-bs=[bs] \
+-iodepth=[iodepth] \
+-rw=[rw]
+</code></pre><p>使用的dd测试顺序写的模板为：</p>
+<pre><code>dd if=/dev/zero of=${filename} bs=${ts[0]} count=${ts[1]} oflag=dsync,direct,nonblock
+</code></pre><p>变量参数说明：</p>
+<ul>
+<li>bs：一个I/O请求的块大小（Block Size）</li>
+<li>iodepth：请求队列大小的上限</li>
+<li>rw：测试类型，如write（顺序写）、randwrite（随机写）、randread（随机读）</li>
+</ul>
+<h3 id="测试结果"><a href="#测试结果" class="headerlink" title="测试结果"></a>测试结果</h3><h4 id="本地数据盘"><a href="#本地数据盘" class="headerlink" title="本地数据盘"></a>本地数据盘</h4><div class="table-container">
+<table>
+<thead>
+<tr>
+<th style="text-align:center">fio参数</th>
+<th style="text-align:center">bs</th>
+<th style="text-align:center">iodepth</th>
+<th style="text-align:center">rw</th>
+<th style="text-align:center">iostat输出</th>
+<th style="text-align:center">rrqm/s</th>
+<th style="text-align:center">wrqm/s</th>
+<th style="text-align:center">r/s</th>
+<th style="text-align:center">w/s</th>
+<th style="text-align:center">rMB/s</th>
+<th style="text-align:center">wMB/s</th>
+<th style="text-align:center">avgrq-sz</th>
+<th style="text-align:center">avgqu-sz</th>
+<th style="text-align:center">await</th>
+<th style="text-align:center">r_await</th>
+<th style="text-align:center">w_await</th>
+<th style="text-align:center">svctm</th>
+<th style="text-align:center">%util</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center"></td>
+<td style="text-align:center">4K</td>
+<td style="text-align:center">1</td>
+<td style="text-align:center">write</td>
+<td style="text-align:center"></td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">3.56</td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">10226.51</td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">39.96</td>
+<td style="text-align:center">8.00</td>
+<td style="text-align:center">0.86</td>
+<td style="text-align:center">0.08</td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">0.08</td>
+<td style="text-align:center">0.08</td>
+<td style="text-align:center">86.28</td>
+</tr>
+<tr>
+<td style="text-align:center"></td>
+<td style="text-align:center">4K</td>
+<td style="text-align:center">1</td>
+<td style="text-align:center">randwrite</td>
+<td style="text-align:center"></td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">128.95</td>
+<td style="text-align:center">1.84</td>
+<td style="text-align:center">4922.37</td>
+<td style="text-align:center">0.01</td>
+<td style="text-align:center">19.73</td>
+<td style="text-align:center">8.21</td>
+<td style="text-align:center">0.95</td>
+<td style="text-align:center">0.19</td>
+<td style="text-align:center">9.45</td>
+<td style="text-align:center">0.19</td>
+<td style="text-align:center">0.19</td>
+<td style="text-align:center">92.01</td>
+</tr>
+<tr>
+<td style="text-align:center"></td>
+<td style="text-align:center">4K</td>
+<td style="text-align:center">1</td>
+<td style="text-align:center">randread</td>
+<td style="text-align:center"></td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">73.94</td>
+<td style="text-align:center">352.75</td>
+<td style="text-align:center">178.88</td>
+<td style="text-align:center">1.38</td>
+<td style="text-align:center">0.99</td>
+<td style="text-align:center">9.11</td>
+<td style="text-align:center">1.12</td>
+<td style="text-align:center">2.11</td>
+<td style="text-align:center">2.78</td>
+<td style="text-align:center">0.78</td>
+<td style="text-align:center">1.85</td>
+<td style="text-align:center">98.58</td>
+</tr>
+<tr>
+<td style="text-align:center"></td>
+<td style="text-align:center">4K</td>
+<td style="text-align:center">32</td>
+<td style="text-align:center">write</td>
+<td style="text-align:center"></td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">99.35</td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">58898.38</td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">230.46</td>
+<td style="text-align:center">8.01</td>
+<td style="text-align:center">26.20</td>
+<td style="text-align:center">0.44</td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">0.44</td>
+<td style="text-align:center">0.02</td>
+<td style="text-align:center">102.81</td>
+</tr>
+<tr>
+<td style="text-align:center"></td>
+<td style="text-align:center">4K</td>
+<td style="text-align:center">32</td>
+<td style="text-align:center">randwrite</td>
+<td style="text-align:center"></td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">0.20</td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">5889.48</td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">23.01</td>
+<td style="text-align:center">8.00</td>
+<td style="text-align:center">31.51</td>
+<td style="text-align:center">5.34</td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">5.34</td>
+<td style="text-align:center">0.17</td>
+<td style="text-align:center">100.29</td>
+</tr>
+<tr>
+<td style="text-align:center"></td>
+<td style="text-align:center">4K</td>
+<td style="text-align:center">32</td>
+<td style="text-align:center">randread</td>
+<td style="text-align:center"></td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">0.10</td>
+<td style="text-align:center">4583.44</td>
+<td style="text-align:center">50.76</td>
+<td style="text-align:center">17.90</td>
+<td style="text-align:center">0.20</td>
+<td style="text-align:center">8.00</td>
+<td style="text-align:center">32.62</td>
+<td style="text-align:center">7.05</td>
+<td style="text-align:center">7.05</td>
+<td style="text-align:center">7.53</td>
+<td style="text-align:center">0.22</td>
+<td style="text-align:center">102.22</td>
+</tr>
+<tr>
+<td style="text-align:center"></td>
+<td style="text-align:center">16K</td>
+<td style="text-align:center">1</td>
+<td style="text-align:center">write</td>
+<td style="text-align:center"></td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">0.36</td>
+<td style="text-align:center">111.02</td>
+<td style="text-align:center">9513.00</td>
+<td style="text-align:center">0.43</td>
+<td style="text-align:center">148.64</td>
+<td style="text-align:center">31.72</td>
+<td style="text-align:center">1.65</td>
+<td style="text-align:center">0.17</td>
+<td style="text-align:center">6.96</td>
+<td style="text-align:center">0.09</td>
+<td style="text-align:center">0.09</td>
+<td style="text-align:center">90.83</td>
+</tr>
+<tr>
+<td style="text-align:center"></td>
+<td style="text-align:center">16K</td>
+<td style="text-align:center">1</td>
+<td style="text-align:center">randwrite</td>
+<td style="text-align:center"></td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">0.38</td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">3656.53</td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">57.13</td>
+<td style="text-align:center">32.00</td>
+<td style="text-align:center">0.95</td>
+<td style="text-align:center">0.26</td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">0.26</td>
+<td style="text-align:center">0.26</td>
+<td style="text-align:center">95.34</td>
+</tr>
+<tr>
+<td style="text-align:center"></td>
+<td style="text-align:center">16K</td>
+<td style="text-align:center">1</td>
+<td style="text-align:center">randread</td>
+<td style="text-align:center"></td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">0.10</td>
+<td style="text-align:center">240.19</td>
+<td style="text-align:center">159.17</td>
+<td style="text-align:center">3.75</td>
+<td style="text-align:center">2.48</td>
+<td style="text-align:center">31.99</td>
+<td style="text-align:center">0.99</td>
+<td style="text-align:center">2.47</td>
+<td style="text-align:center">3.91</td>
+<td style="text-align:center">0.29</td>
+<td style="text-align:center">2.47</td>
+<td style="text-align:center">98.54</td>
+</tr>
+<tr>
+<td style="text-align:center"></td>
+<td style="text-align:center">16K</td>
+<td style="text-align:center">32</td>
+<td style="text-align:center">write</td>
+<td style="text-align:center"></td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">0.17</td>
+<td style="text-align:center">16.98</td>
+<td style="text-align:center">45059.94</td>
+<td style="text-align:center">0.27</td>
+<td style="text-align:center">704.06</td>
+<td style="text-align:center">32.00</td>
+<td style="text-align:center">25.28</td>
+<td style="text-align:center">0.56</td>
+<td style="text-align:center">3.69</td>
+<td style="text-align:center">0.56</td>
+<td style="text-align:center">0.02</td>
+<td style="text-align:center">100.91</td>
+</tr>
+<tr>
+<td style="text-align:center"></td>
+<td style="text-align:center">16K</td>
+<td style="text-align:center">32</td>
+<td style="text-align:center">randwrite</td>
+<td style="text-align:center"></td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">0.34</td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">7189.52</td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">112.33</td>
+<td style="text-align:center">32.00</td>
+<td style="text-align:center">31.37</td>
+<td style="text-align:center">4.35</td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">4.35</td>
+<td style="text-align:center">0.14</td>
+<td style="text-align:center">100.09</td>
+</tr>
+<tr>
+<td style="text-align:center"></td>
+<td style="text-align:center">16K</td>
+<td style="text-align:center">32</td>
+<td style="text-align:center">randread</td>
+<td style="text-align:center"></td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">0.14</td>
+<td style="text-align:center">4278.55</td>
+<td style="text-align:center">299.55</td>
+<td style="text-align:center">66.85</td>
+<td style="text-align:center">4.68</td>
+<td style="text-align:center">32.00</td>
+<td style="text-align:center">32.66</td>
+<td style="text-align:center">7.16</td>
+<td style="text-align:center">6.97</td>
+<td style="text-align:center">9.86</td>
+<td style="text-align:center">0.22</td>
+<td style="text-align:center">102.33</td>
+</tr>
+<tr>
+<td style="text-align:center"></td>
+<td style="text-align:center">128K</td>
+<td style="text-align:center">1</td>
+<td style="text-align:center">write</td>
+<td style="text-align:center"></td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">0.38</td>
+<td style="text-align:center">504.46</td>
+<td style="text-align:center">4656.53</td>
+<td style="text-align:center">7.88</td>
+<td style="text-align:center">582.00</td>
+<td style="text-align:center">234.08</td>
+<td style="text-align:center">4.03</td>
+<td style="text-align:center">0.78</td>
+<td style="text-align:center">6.54</td>
+<td style="text-align:center">0.16</td>
+<td style="text-align:center">0.16</td>
+<td style="text-align:center">84.25</td>
+</tr>
+<tr>
+<td style="text-align:center"></td>
+<td style="text-align:center">128K</td>
+<td style="text-align:center">1</td>
+<td style="text-align:center">randwrite</td>
+<td style="text-align:center"></td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">0.34</td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">1831.94</td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">228.94</td>
+<td style="text-align:center">255.94</td>
+<td style="text-align:center">0.93</td>
+<td style="text-align:center">0.51</td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">0.51</td>
+<td style="text-align:center">0.51</td>
+<td style="text-align:center">93.26</td>
+</tr>
+<tr>
+<td style="text-align:center"></td>
+<td style="text-align:center">128K</td>
+<td style="text-align:center">1</td>
+<td style="text-align:center">randread</td>
+<td style="text-align:center"></td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">0.10</td>
+<td style="text-align:center">147.30</td>
+<td style="text-align:center">168.32</td>
+<td style="text-align:center">18.41</td>
+<td style="text-align:center">21.01</td>
+<td style="text-align:center">255.79</td>
+<td style="text-align:center">0.98</td>
+<td style="text-align:center">3.11</td>
+<td style="text-align:center">5.85</td>
+<td style="text-align:center">0.71</td>
+<td style="text-align:center">3.11</td>
+<td style="text-align:center">98.10</td>
+</tr>
+<tr>
+<td style="text-align:center"></td>
+<td style="text-align:center">128K</td>
+<td style="text-align:center">32</td>
+<td style="text-align:center">write</td>
+<td style="text-align:center"></td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">0.17</td>
+<td style="text-align:center">30.29</td>
+<td style="text-align:center">10101.49</td>
+<td style="text-align:center">3.79</td>
+<td style="text-align:center">1262.64</td>
+<td style="text-align:center">255.99</td>
+<td style="text-align:center">26.33</td>
+<td style="text-align:center">2.60</td>
+<td style="text-align:center">4.74</td>
+<td style="text-align:center">2.59</td>
+<td style="text-align:center">0.10</td>
+<td style="text-align:center">102.72</td>
+</tr>
+<tr>
+<td style="text-align:center"></td>
+<td style="text-align:center">128K</td>
+<td style="text-align:center">32</td>
+<td style="text-align:center">randwrite</td>
+<td style="text-align:center"></td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">0.34</td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">3501.87</td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">437.69</td>
+<td style="text-align:center">255.97</td>
+<td style="text-align:center">31.60</td>
+<td style="text-align:center">8.98</td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">8.98</td>
+<td style="text-align:center">0.29</td>
+<td style="text-align:center">100.67</td>
+</tr>
+<tr>
+<td style="text-align:center"></td>
+<td style="text-align:center">128K</td>
+<td style="text-align:center">32</td>
+<td style="text-align:center">randread</td>
+<td style="text-align:center"></td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">0.17</td>
+<td style="text-align:center">2078.02</td>
+<td style="text-align:center">217.14</td>
+<td style="text-align:center">259.75</td>
+<td style="text-align:center">27.10</td>
+<td style="text-align:center">255.96</td>
+<td style="text-align:center">32.17</td>
+<td style="text-align:center">14.08</td>
+<td style="text-align:center">12.71</td>
+<td style="text-align:center">27.21</td>
+<td style="text-align:center">0.44</td>
+<td style="text-align:center">100.93</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="table-container">
+<table>
+<thead>
+<tr>
+<th style="text-align:center">dd参数</th>
+<th style="text-align:center">bs</th>
+<th style="text-align:center">iostat输出</th>
+<th style="text-align:center">rrqm/s</th>
+<th style="text-align:center">wrqm/s</th>
+<th style="text-align:center">r/s</th>
+<th style="text-align:center">w/s</th>
+<th style="text-align:center">rMB/s</th>
+<th style="text-align:center">wMB/s</th>
+<th style="text-align:center">avgrq-sz</th>
+<th style="text-align:center">avgqu-sz</th>
+<th style="text-align:center">await</th>
+<th style="text-align:center">r_await</th>
+<th style="text-align:center">w_await</th>
+<th style="text-align:center">svctm</th>
+<th style="text-align:center">%util</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center"></td>
+<td style="text-align:center">4K</td>
+<td style="text-align:center"></td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">12396.10</td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">8511.28</td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">82.56</td>
+<td style="text-align:center">19.87</td>
+<td style="text-align:center">0.96</td>
+<td style="text-align:center">0.11</td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">0.11</td>
+<td style="text-align:center">0.11</td>
+<td style="text-align:center">95.88</td>
+</tr>
+<tr>
+<td style="text-align:center"></td>
+<td style="text-align:center">16K</td>
+<td style="text-align:center"></td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">13265.14</td>
+<td style="text-align:center">0.02</td>
+<td style="text-align:center">8217.27</td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">122.53</td>
+<td style="text-align:center">30.54</td>
+<td style="text-align:center">0.95</td>
+<td style="text-align:center">0.12</td>
+<td style="text-align:center">6.00</td>
+<td style="text-align:center">0.12</td>
+<td style="text-align:center">0.12</td>
+<td style="text-align:center">95.41</td>
+</tr>
+<tr>
+<td style="text-align:center"></td>
+<td style="text-align:center">128K</td>
+<td style="text-align:center"></td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">2372.71</td>
+<td style="text-align:center">0.05</td>
+<td style="text-align:center">1425.15</td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">72.29</td>
+<td style="text-align:center">103.88</td>
+<td style="text-align:center">0.20</td>
+<td style="text-align:center">0.14</td>
+<td style="text-align:center">2.33</td>
+<td style="text-align:center">0.14</td>
+<td style="text-align:center">0.14</td>
+<td style="text-align:center">19.88</td>
+</tr>
+</tbody>
+</table>
+</div>
+<h4 id="普通云硬盘"><a href="#普通云硬盘" class="headerlink" title="普通云硬盘"></a>普通云硬盘</h4><div class="table-container">
+<table>
+<thead>
+<tr>
+<th style="text-align:center">fio参数</th>
+<th style="text-align:center">bs</th>
+<th style="text-align:center">iodepth</th>
+<th style="text-align:center">rw</th>
+<th style="text-align:center">iostat输出</th>
+<th style="text-align:center">rrqm/s</th>
+<th style="text-align:center">wrqm/s</th>
+<th style="text-align:center">r/s</th>
+<th style="text-align:center">w/s</th>
+<th style="text-align:center">rMB/s</th>
+<th style="text-align:center">wMB/s</th>
+<th style="text-align:center">avgrq-sz</th>
+<th style="text-align:center">avgqu-sz</th>
+<th style="text-align:center">await</th>
+<th style="text-align:center">r_await</th>
+<th style="text-align:center">w_await</th>
+<th style="text-align:center">svctm</th>
+<th style="text-align:center">%util</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center"></td>
+<td style="text-align:center">4K</td>
+<td style="text-align:center">1</td>
+<td style="text-align:center">write</td>
+<td style="text-align:center"></td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">3.30</td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">598.48</td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">2.35</td>
+<td style="text-align:center">8.04</td>
+<td style="text-align:center">0.98</td>
+<td style="text-align:center">1.64</td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">1.64</td>
+<td style="text-align:center">1.64</td>
+<td style="text-align:center">97.89</td>
+</tr>
+<tr>
+<td style="text-align:center"></td>
+<td style="text-align:center">4K</td>
+<td style="text-align:center">1</td>
+<td style="text-align:center">randwrite</td>
+<td style="text-align:center"></td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">22.78</td>
+<td style="text-align:center">10.21</td>
+<td style="text-align:center">589.62</td>
+<td style="text-align:center">0.04</td>
+<td style="text-align:center">2.39</td>
+<td style="text-align:center">8.30</td>
+<td style="text-align:center">0.98</td>
+<td style="text-align:center">1.63</td>
+<td style="text-align:center">1.08</td>
+<td style="text-align:center">1.64</td>
+<td style="text-align:center">1.63</td>
+<td style="text-align:center">97.72</td>
+</tr>
+<tr>
+<td style="text-align:center"></td>
+<td style="text-align:center">4K</td>
+<td style="text-align:center">1</td>
+<td style="text-align:center">randread</td>
+<td style="text-align:center"></td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">12.88</td>
+<td style="text-align:center">863.47</td>
+<td style="text-align:center">0.78</td>
+<td style="text-align:center">3.37</td>
+<td style="text-align:center">0.05</td>
+<td style="text-align:center">8.12</td>
+<td style="text-align:center">0.90</td>
+<td style="text-align:center">1.05</td>
+<td style="text-align:center">1.04</td>
+<td style="text-align:center">8.09</td>
+<td style="text-align:center">1.04</td>
+<td style="text-align:center">89.70</td>
+</tr>
+<tr>
+<td style="text-align:center"></td>
+<td style="text-align:center">4K</td>
+<td style="text-align:center">32</td>
+<td style="text-align:center">write</td>
+<td style="text-align:center"></td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">4.12</td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">9667.01</td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">37.78</td>
+<td style="text-align:center">8.00</td>
+<td style="text-align:center">31.68</td>
+<td style="text-align:center">3.28</td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">3.28</td>
+<td style="text-align:center">0.11</td>
+<td style="text-align:center">101.89</td>
+</tr>
+<tr>
+<td style="text-align:center"></td>
+<td style="text-align:center">4K</td>
+<td style="text-align:center">32</td>
+<td style="text-align:center">randwrite</td>
+<td style="text-align:center"></td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">83.87</td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">2030.47</td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">8.26</td>
+<td style="text-align:center">8.33</td>
+<td style="text-align:center">31.96</td>
+<td style="text-align:center">15.74</td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">15.74</td>
+<td style="text-align:center">0.49</td>
+<td style="text-align:center">99.76</td>
+</tr>
+<tr>
+<td style="text-align:center"></td>
+<td style="text-align:center">4K</td>
+<td style="text-align:center">32</td>
+<td style="text-align:center">randread</td>
+<td style="text-align:center"></td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">43.29</td>
+<td style="text-align:center">1995.73</td>
+<td style="text-align:center">4.01</td>
+<td style="text-align:center">7.80</td>
+<td style="text-align:center">0.18</td>
+<td style="text-align:center">8.17</td>
+<td style="text-align:center">32.37</td>
+<td style="text-align:center">16.19</td>
+<td style="text-align:center">15.70</td>
+<td style="text-align:center">259.64</td>
+<td style="text-align:center">0.50</td>
+<td style="text-align:center">99.72</td>
+</tr>
+<tr>
+<td style="text-align:center"></td>
+<td style="text-align:center">16K</td>
+<td style="text-align:center">1</td>
+<td style="text-align:center">write</td>
+<td style="text-align:center"></td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">0.17</td>
+<td style="text-align:center">25.53</td>
+<td style="text-align:center">480.46</td>
+<td style="text-align:center">0.10</td>
+<td style="text-align:center">7.50</td>
+<td style="text-align:center">30.78</td>
+<td style="text-align:center">1.81</td>
+<td style="text-align:center">3.60</td>
+<td style="text-align:center">33.79</td>
+<td style="text-align:center">1.99</td>
+<td style="text-align:center">1.94</td>
+<td style="text-align:center">98.37</td>
+</tr>
+<tr>
+<td style="text-align:center"></td>
+<td style="text-align:center">16K</td>
+<td style="text-align:center">1</td>
+<td style="text-align:center">randwrite</td>
+<td style="text-align:center"></td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">97.34</td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">511.84</td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">8.36</td>
+<td style="text-align:center">33.47</td>
+<td style="text-align:center">0.99</td>
+<td style="text-align:center">1.93</td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">1.93</td>
+<td style="text-align:center">1.91</td>
+<td style="text-align:center">97.73</td>
+</tr>
+<tr>
+<td style="text-align:center"></td>
+<td style="text-align:center">16K</td>
+<td style="text-align:center">1</td>
+<td style="text-align:center">randread</td>
+<td style="text-align:center"></td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">40.51</td>
+<td style="text-align:center">803.15</td>
+<td style="text-align:center">35.75</td>
+<td style="text-align:center">8.89</td>
+<td style="text-align:center">0.64</td>
+<td style="text-align:center">23.27</td>
+<td style="text-align:center">1.11</td>
+<td style="text-align:center">1.32</td>
+<td style="text-align:center">1.17</td>
+<td style="text-align:center">4.70</td>
+<td style="text-align:center">1.17</td>
+<td style="text-align:center">97.75</td>
+</tr>
+<tr>
+<td style="text-align:center"></td>
+<td style="text-align:center">16K</td>
+<td style="text-align:center">32</td>
+<td style="text-align:center">write</td>
+<td style="text-align:center"></td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">14.91</td>
+<td style="text-align:center">55.88</td>
+<td style="text-align:center">5316.54</td>
+<td style="text-align:center">0.62</td>
+<td style="text-align:center">83.05</td>
+<td style="text-align:center">31.90</td>
+<td style="text-align:center">29.73</td>
+<td style="text-align:center">5.53</td>
+<td style="text-align:center">1.15</td>
+<td style="text-align:center">5.58</td>
+<td style="text-align:center">0.19</td>
+<td style="text-align:center">100.15</td>
+</tr>
+<tr>
+<td style="text-align:center"></td>
+<td style="text-align:center">16K</td>
+<td style="text-align:center">32</td>
+<td style="text-align:center">randwrite</td>
+<td style="text-align:center"></td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">106.75</td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">2255.85</td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">35.60</td>
+<td style="text-align:center">32.32</td>
+<td style="text-align:center">31.95</td>
+<td style="text-align:center">14.16</td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">14.16</td>
+<td style="text-align:center">0.44</td>
+<td style="text-align:center">99.92</td>
+</tr>
+<tr>
+<td style="text-align:center"></td>
+<td style="text-align:center">16K</td>
+<td style="text-align:center">32</td>
+<td style="text-align:center">randread</td>
+<td style="text-align:center"></td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">53.93</td>
+<td style="text-align:center">1823.88</td>
+<td style="text-align:center">163.05</td>
+<td style="text-align:center">25.93</td>
+<td style="text-align:center">2.73</td>
+<td style="text-align:center">29.55</td>
+<td style="text-align:center">32.30</td>
+<td style="text-align:center">15.96</td>
+<td style="text-align:center">15.71</td>
+<td style="text-align:center">18.66</td>
+<td style="text-align:center">0.50</td>
+<td style="text-align:center">100.04</td>
+</tr>
+<tr>
+<td style="text-align:center"></td>
+<td style="text-align:center">128K</td>
+<td style="text-align:center">1</td>
+<td style="text-align:center">write</td>
+<td style="text-align:center"></td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">0.17</td>
+<td style="text-align:center">204.58</td>
+<td style="text-align:center">291.59</td>
+<td style="text-align:center">2.92</td>
+<td style="text-align:center">36.41</td>
+<td style="text-align:center">162.33</td>
+<td style="text-align:center">4.21</td>
+<td style="text-align:center">9.71</td>
+<td style="text-align:center">19.25</td>
+<td style="text-align:center">3.02</td>
+<td style="text-align:center">1.98</td>
+<td style="text-align:center">98.24</td>
+</tr>
+<tr>
+<td style="text-align:center"></td>
+<td style="text-align:center">128K</td>
+<td style="text-align:center">1</td>
+<td style="text-align:center">randwrite</td>
+<td style="text-align:center"></td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">56.03</td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">317.69</td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">39.83</td>
+<td style="text-align:center">256.78</td>
+<td style="text-align:center">0.98</td>
+<td style="text-align:center">3.08</td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">3.08</td>
+<td style="text-align:center">3.06</td>
+<td style="text-align:center">97.28</td>
+</tr>
+<tr>
+<td style="text-align:center"></td>
+<td style="text-align:center">128K</td>
+<td style="text-align:center">1</td>
+<td style="text-align:center">randread</td>
+<td style="text-align:center"></td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">25.97</td>
+<td style="text-align:center">806.03</td>
+<td style="text-align:center">47.02</td>
+<td style="text-align:center">44.85</td>
+<td style="text-align:center">5.29</td>
+<td style="text-align:center">120.38</td>
+<td style="text-align:center">1.47</td>
+<td style="text-align:center">1.72</td>
+<td style="text-align:center">1.56</td>
+<td style="text-align:center">4.44</td>
+<td style="text-align:center">1.15</td>
+<td style="text-align:center">97.96</td>
+</tr>
+<tr>
+<td style="text-align:center"></td>
+<td style="text-align:center">128K</td>
+<td style="text-align:center">32</td>
+<td style="text-align:center">write</td>
+<td style="text-align:center"></td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">6.19</td>
+<td style="text-align:center">130.88</td>
+<td style="text-align:center">915.98</td>
+<td style="text-align:center">7.34</td>
+<td style="text-align:center">113.85</td>
+<td style="text-align:center">237.08</td>
+<td style="text-align:center">28.89</td>
+<td style="text-align:center">27.58</td>
+<td style="text-align:center">1.55</td>
+<td style="text-align:center">31.30</td>
+<td style="text-align:center">0.95</td>
+<td style="text-align:center">99.41</td>
+</tr>
+<tr>
+<td style="text-align:center"></td>
+<td style="text-align:center">128K</td>
+<td style="text-align:center">32</td>
+<td style="text-align:center">randwrite</td>
+<td style="text-align:center"></td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">48.87</td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">1021.46</td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">127.29</td>
+<td style="text-align:center">255.21</td>
+<td style="text-align:center">32.34</td>
+<td style="text-align:center">31.67</td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">31.67</td>
+<td style="text-align:center">0.98</td>
+<td style="text-align:center">99.63</td>
+</tr>
+<tr>
+<td style="text-align:center"></td>
+<td style="text-align:center">128K</td>
+<td style="text-align:center">32</td>
+<td style="text-align:center">randread</td>
+<td style="text-align:center"></td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">17.42</td>
+<td style="text-align:center">1082.01</td>
+<td style="text-align:center">179.98</td>
+<td style="text-align:center">109.79</td>
+<td style="text-align:center">22.04</td>
+<td style="text-align:center">213.93</td>
+<td style="text-align:center">36.52</td>
+<td style="text-align:center">28.76</td>
+<td style="text-align:center">27.57</td>
+<td style="text-align:center">35.92</td>
+<td style="text-align:center">0.79</td>
+<td style="text-align:center">100.00</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="table-container">
+<table>
+<thead>
+<tr>
+<th style="text-align:center">dd参数</th>
+<th style="text-align:center">bs</th>
+<th style="text-align:center">iostat输出</th>
+<th style="text-align:center">rrqm/s</th>
+<th style="text-align:center">wrqm/s</th>
+<th style="text-align:center">r/s</th>
+<th style="text-align:center">w/s</th>
+<th style="text-align:center">rMB/s</th>
+<th style="text-align:center">wMB/s</th>
+<th style="text-align:center">avgrq-sz</th>
+<th style="text-align:center">avgqu-sz</th>
+<th style="text-align:center">await</th>
+<th style="text-align:center">r_await</th>
+<th style="text-align:center">w_await</th>
+<th style="text-align:center">svctm</th>
+<th style="text-align:center">%util</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center"></td>
+<td style="text-align:center">4K</td>
+<td style="text-align:center"></td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">692.72</td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">519.71</td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">4.79</td>
+<td style="text-align:center">18.89</td>
+<td style="text-align:center">1.00</td>
+<td style="text-align:center">1.92</td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">1.92</td>
+<td style="text-align:center">1.92</td>
+<td style="text-align:center">99.95</td>
+</tr>
+<tr>
+<td style="text-align:center"></td>
+<td style="text-align:center">16K</td>
+<td style="text-align:center"></td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">645.78</td>
+<td style="text-align:center">0.02</td>
+<td style="text-align:center">484.46</td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">6.75</td>
+<td style="text-align:center">28.54</td>
+<td style="text-align:center">1.00</td>
+<td style="text-align:center">2.06</td>
+<td style="text-align:center">9.00</td>
+<td style="text-align:center">2.06</td>
+<td style="text-align:center">2.06</td>
+<td style="text-align:center">99.76</td>
+</tr>
+<tr>
+<td style="text-align:center"></td>
+<td style="text-align:center">128K</td>
+<td style="text-align:center"></td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">616.89</td>
+<td style="text-align:center">0.15</td>
+<td style="text-align:center">398.22</td>
+<td style="text-align:center">0.00</td>
+<td style="text-align:center">20.03</td>
+<td style="text-align:center">102.96</td>
+<td style="text-align:center">0.97</td>
+<td style="text-align:center">2.43</td>
+<td style="text-align:center">5.44</td>
+<td style="text-align:center">2.43</td>
+<td style="text-align:center">2.43</td>
+<td style="text-align:center">96.66</td>
+</tr>
+</tbody>
+</table>
+</div>
+<h3 id="结果分析"><a href="#结果分析" class="headerlink" title="结果分析"></a>结果分析</h3><h4 id="修改iodepth的影响"><a href="#修改iodepth的影响" class="headerlink" title="修改iodepth的影响"></a>修改iodepth的影响</h4><ul>
+<li>由<code>iodepth</code>的定义可以看出，<code>iodepth</code>的修改直接影响的是<code>avgqu-sz</code>(平均队列大小)，因此在<code>iodepth</code>从1升到32后，<code>avgqu-sz</code>也相应地从约等于1提升到约等于32。</li>
+<li>由于请求队列的扩容，块设备执行完一个I/O请求后可以立即从队列中取出下一个请求，无需等待通用块层将新的请求放入队列，设备执行I/O请求的时间比例增加，因此可以看到块设备的利用率<code>%util</code>和设备的IOPS(<code>r/s</code>+<code>w/s</code>)得到提升。</li>
+<li>此外，因为吞吐量(<code>rMB/s</code>, <code>wMB/s</code>) = IOPS * I/O 请求大小，因此随着IOPS增加，设备的吞吐量也提升。</li>
+<li>但可以看到，iops和吞吐量的增长率与队列大小的增长率不成正比，例如本地数据盘测试中队列大小扩大了32倍时，而在4K顺序写场景下iops和吞吐量只扩大了约5.8倍，在4K随机写场景下只是原来的1.2倍。</li>
+<li>队列中的请求数增加，使得每个请求在队列中等待的平均时间变长，因此请求从发起到处理完成的平均时间<code>await</code>增加</li>
+</ul>
+<h4 id="修改bs的影响"><a href="#修改bs的影响" class="headerlink" title="修改bs的影响"></a>修改bs的影响</h4><ul>
+<li>将<code>bs</code>即I/O块大小从4K增加到16K、128K后，直接影响的是<code>avgrq-sz</code>(平均请求大小)增大，且<code>avgrq-sz</code>的递增与<code>bs</code>的递增成正比例。</li>
+<li>如前所述，吞吐量等于IOPS乘以请求大小，因此在IOPS不变、平均请求大小增大的情况下，吞吐量会上升</li>
+<li>由于请求的块平均大小增大，设备处理一个请求所需要的时间更长，因此IOPS会下降</li>
+<li>在请求队列大小为32的场景下，增大块大小也会使得<code>await</code>上升，原因同上</li>
+</ul>
+<h4 id="随机与顺序I-O的影响"><a href="#随机与顺序I-O的影响" class="headerlink" title="随机与顺序I/O的影响"></a>随机与顺序I/O的影响</h4><ul>
+<li>对于传统硬盘，由于磁头寻道需要时间，随机I/O比顺序I/O寻道时间长，即<code>await增加</code></li>
+<li>在队列长度<code>iodepth</code>不变的条件下，由于请求的<code>await</code>增加，因此IOPS减少</li>
+<li>IOPS减小，由公式可知在请求大小相同的情况下，随机I/O的吞吐量也减小</li>
+</ul>
+<h4 id="本地数据盘和普通云盘的对比"><a href="#本地数据盘和普通云盘的对比" class="headerlink" title="本地数据盘和普通云盘的对比"></a>本地数据盘和普通云盘的对比</h4><ul>
+<li>由于CBS云盘上的存储空间是分成多个1M的块分散落在底层磁盘上的，而且数据需要走网络，所以在整体性能上IOPS、吞吐量、<code>await</code>等指标本地数据盘都要好于普通云盘</li>
+<li>但是在<code>iodepth</code>等于1的<strong>随机读</strong>场景下，普通云盘性能优于本地数据盘，因为此时本地数据盘的磁盘寻道时间比（CBS底层磁盘的寻道时间+网络传输时间）还要长，即此场景下云盘的<code>await</code>比本地数据盘低，因此IOPS和吞吐量要比本地数据盘高</li>
+</ul>
+<h4 id="总结-对于本地数据盘"><a href="#总结-对于本地数据盘" class="headerlink" title="总结(对于本地数据盘)"></a>总结(对于本地数据盘)</h4><div class="table-container">
+<table>
+<thead>
+<tr>
+<th>变量</th>
+<th>merges</th>
+<th>IOPS</th>
+<th>throughput</th>
+<th>avgrq-sz</th>
+<th>avgqu-sz</th>
+<th>await</th>
+<th>%util</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>iodepth↑</td>
+<td>-</td>
+<td>↑</td>
+<td>↑</td>
+<td>-</td>
+<td>↑</td>
+<td>↑</td>
+<td>↑</td>
+</tr>
+<tr>
+<td>bs↑</td>
+<td>-</td>
+<td>-</td>
+<td>↑</td>
+<td>↑</td>
+<td>-</td>
+<td>↑</td>
+<td>-</td>
+</tr>
+<tr>
+<td>random</td>
+<td>-</td>
+<td>↓</td>
+<td>↓</td>
+<td>-</td>
+<td>-</td>
+<td>↑</td>
+<td>-</td>
+</tr>
+</tbody>
+</table>
+</div>
+<h4 id="疑问"><a href="#疑问" class="headerlink" title="疑问"></a>疑问</h4><ol>
+<li>为什么在<strong>随机读/写</strong>场景下，云盘merge的个数远比本地数据盘多?</li>
+<li>为什么同样测试顺序写，dd测出的merge的个数远比fio测出的多？</li>
+</ol>
+<h1 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h1><ul>
+<li>《深入理解Linux内核》第三版第十四章(块设备驱动程序)</li>
+<li><a href="https://lwn.net/Articles/736534/" target="_blank" rel="noopener">A block layer introduction part 1: the bio layer</a></li>
+<li><a href="http://blog.csdn.net/jianchi88/article/details/7212599" target="_blank" rel="noopener">Linux设备驱动—块设备（二）之相关结构体</a></li>
+<li><a href="http://man7.org/linux/man-pages/man5/proc.5.html" target="_blank" rel="noopener">proc Manual</a></li>
+<li><a href="https://www.kernel.org/doc/Documentation/iostats.txt" target="_blank" rel="noopener">iostats Document</a></li>
+<li><a href="https://elixir.free-electrons.com/linux/latest/source/include/linux/genhd.h" target="_blank" rel="noopener">内核源码genhd.h等</a></li>
+<li><a href="http://bean-li.github.io/dive-into-iostat/" target="_blank" rel="noopener">深入理解iostat</a></li>
+<li><a href="http://ykrocku.github.io/blog/2014/04/11/diskstats/" target="_blank" rel="noopener">深入分析深入分析diskstats</a></li>
+<li><a href="http://linuxperf.com/?p=156" target="_blank" rel="noopener">容易被误读的IOSTAT</a></li>
+<li><a href="http://dbaplus.cn/news-21-290-1.html" target="_blank" rel="noopener">与时俱进：iostat核心变化解读</a></li>
+</ul>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Storage/" rel="tag"># Storage</a>
+          
+            <a href="/tags/Operating-System/" rel="tag"># Operating System</a>
+          
+            <a href="/tags/Linux/" rel="tag"># Linux</a>
+          
+            <a href="/tags/Block-Storage/" rel="tag"># Block Storage</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/笔记/Architectures-for-Controller-Based-CDP-论文学习笔记/" rel="next" title="<基于存储控制器的CDP架构>论文学习笔记">
+                <i class="fa fa-chevron-left"></i> <基于存储控制器的cdp架构>论文学习笔记
+              </基于存储控制器的cdp架构></a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/翻译/基于持续数据保护和检查点的虚拟机备份还原系统/" rel="prev" title="<基于持续数据保护(CDP)和Checkpoint的虚拟机实时备份恢复系统>论文翻译">
+                <基于持续数据保护(cdp)和checkpoint的虚拟机实时备份恢复系统>论文翻译 <i class="fa fa-chevron-right"></i>
+              </基于持续数据保护(cdp)和checkpoint的虚拟机实时备份恢复系统></a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">Stardust</p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">17</span>
+                  <span class="site-state-item-name">posts</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                
+                  <span class="site-state-item-count">2</span>
+                  <span class="site-state-item-name">categories</span>
+                
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                
+                  <span class="site-state-item-count">29</span>
+                  <span class="site-state-item-name">tags</span>
+                
+              </div>
+            
+
+          </nav>
+
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#块设备基础知识"><span class="nav-number">1.</span> <span class="nav-text">块设备基础知识</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#块设备操作过程"><span class="nav-number">1.1.</span> <span class="nav-text">块设备操作过程</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#通用块层"><span class="nav-number">1.2.</span> <span class="nav-text">通用块层</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#bio结构体"><span class="nav-number">1.2.1.</span> <span class="nav-text">bio结构体</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#磁盘和磁盘分区-gendisk"><span class="nav-number">1.2.2.</span> <span class="nav-text">磁盘和磁盘分区: gendisk</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#I-O请求队列-request-queue"><span class="nav-number">1.2.3.</span> <span class="nav-text">I/O请求队列: request_queue</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#I-O请求-request"><span class="nav-number">1.2.4.</span> <span class="nav-text">I/O请求: request</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#各个结构体类型的关系"><span class="nav-number">1.2.5.</span> <span class="nav-text">各个结构体类型的关系</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#向通用块层提交请求的过程：general-make-request"><span class="nav-number">1.3.</span> <span class="nav-text">向通用块层提交请求的过程：general_make_request</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#向I-O调度程序发出请求的过程：make-request-fn"><span class="nav-number">1.4.</span> <span class="nav-text">向I/O调度程序发出请求的过程：make_request_fn</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#iostat"><span class="nav-number">2.</span> <span class="nav-text">iostat</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#基本实现原理"><span class="nav-number">2.1.</span> <span class="nav-text">基本实现原理</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#proc-stat-文件分析"><span class="nav-number">2.2.</span> <span class="nav-text">/proc/stat 文件分析</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#proc-diskstats-文件分析"><span class="nav-number">2.3.</span> <span class="nav-text">/proc/diskstats 文件分析</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#part-round-stats"><span class="nav-number">2.3.1.</span> <span class="nav-text">part_round_stats</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#drive-stat-acct"><span class="nav-number">2.3.2.</span> <span class="nav-text">drive_stat_acct</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#blk-account-io-completion，blk-account-io-done"><span class="nav-number">2.3.3.</span> <span class="nav-text">blk_account_io_completion，blk_account_io_done</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#输出参数及计算方式"><span class="nav-number">2.4.</span> <span class="nav-text">输出参数及计算方式</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#CPU利用率"><span class="nav-number">2.4.1.</span> <span class="nav-text">CPU利用率</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#user"><span class="nav-number">2.4.1.1.</span> <span class="nav-text">%user</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#nice"><span class="nav-number">2.4.1.2.</span> <span class="nav-text">%nice</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#system"><span class="nav-number">2.4.1.3.</span> <span class="nav-text">%system</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#iowait"><span class="nav-number">2.4.1.4.</span> <span class="nav-text">%iowait</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#steal"><span class="nav-number">2.4.1.5.</span> <span class="nav-text">%steal</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#idle"><span class="nav-number">2.4.1.6.</span> <span class="nav-text">%idle</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#块设备利用率"><span class="nav-number">2.4.2.</span> <span class="nav-text">块设备利用率</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#tps-Transfers-per-second"><span class="nav-number">2.4.2.1.</span> <span class="nav-text">tps: Transfers per second</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#rrqm-s-Read-requests-merged-per-second"><span class="nav-number">2.4.2.2.</span> <span class="nav-text">rrqm/s: Read requests merged per second</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#wrqm-s：Write-requests-merged-per-second"><span class="nav-number">2.4.2.3.</span> <span class="nav-text">wrqm/s：Write requests merged per second</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#r-s-Reads-per-second"><span class="nav-number">2.4.2.4.</span> <span class="nav-text">r/s: Reads per second</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#w-s-Writes-per-second"><span class="nav-number">2.4.2.5.</span> <span class="nav-text">w/s: Writes per second</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#avgrq-sz-Average-requests-size"><span class="nav-number">2.4.2.6.</span> <span class="nav-text">avgrq-sz: Average requests size</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#avgqu-sz-Average-queue-length-size"><span class="nav-number">2.4.2.7.</span> <span class="nav-text">avgqu-sz; Average queue length size</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#await-Await-time"><span class="nav-number">2.4.2.8.</span> <span class="nav-text">await: Await time</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#svctm-Service-time"><span class="nav-number">2.4.2.9.</span> <span class="nav-text">svctm: Service time</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#util-Utilization"><span class="nav-number">2.4.2.10.</span> <span class="nav-text">%util: Utilization</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#实测分析"><span class="nav-number">2.5.</span> <span class="nav-text">实测分析</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#测试说明"><span class="nav-number">2.5.1.</span> <span class="nav-text">测试说明</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#测试结果"><span class="nav-number">2.5.2.</span> <span class="nav-text">测试结果</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#本地数据盘"><span class="nav-number">2.5.2.1.</span> <span class="nav-text">本地数据盘</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#普通云硬盘"><span class="nav-number">2.5.2.2.</span> <span class="nav-text">普通云硬盘</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#结果分析"><span class="nav-number">2.5.3.</span> <span class="nav-text">结果分析</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#修改iodepth的影响"><span class="nav-number">2.5.3.1.</span> <span class="nav-text">修改iodepth的影响</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#修改bs的影响"><span class="nav-number">2.5.3.2.</span> <span class="nav-text">修改bs的影响</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#随机与顺序I-O的影响"><span class="nav-number">2.5.3.3.</span> <span class="nav-text">随机与顺序I/O的影响</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#本地数据盘和普通云盘的对比"><span class="nav-number">2.5.3.4.</span> <span class="nav-text">本地数据盘和普通云盘的对比</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#总结-对于本地数据盘"><span class="nav-number">2.5.3.5.</span> <span class="nav-text">总结(对于本地数据盘)</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#疑问"><span class="nav-number">2.5.3.6.</span> <span class="nav-text">疑问</span></a></li></ol></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#参考资料"><span class="nav-number">3.</span> <span class="nav-text">参考资料</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Stardust</span>
+
+  
+</div>
+
+
+  <div class="powered-by">Powered by <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a></div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">Theme &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Muse</a> v5.1.4</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+  
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+          processEscapes: true,
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+        }
+      });
+    </script>
+
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Queue(function() {
+        var all = MathJax.Hub.getAllJax(), i;
+        for (i=0; i < all.length; i += 1) {
+          all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+      });
+    </script>
+    <script type="text/javascript" src="//cdn.bootcss.com/mathjax/2.7.1/latest.js?config=TeX-AMS-MML_HTMLorMML"></script><!-- hexo-inject:begin --><!-- Begin: Injected MathJax -->
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config("");
+</script>
+
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for(i=0; i < all.length; i += 1) {
+      all[i].SourceElement().parentNode.className += ' has-jax';
+    }
+  });
+</script>
+
+<script type="text/javascript" src="//cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+<!-- End: Injected MathJax -->
+<!-- hexo-inject:end -->
+  
+
+
+  
+
+  
+
+</body>
+</html>

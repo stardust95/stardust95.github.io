@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-CN">
+<head><meta name="generator" content="Hexo 3.8.0">
+  <!-- hexo-inject:begin --><!-- hexo-inject:end --><meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css">
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css">
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="Distributed Storage,Ceph,OpenStack Swift,">
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="这是一篇2013年发表的关于Ceph和Swift对比的文章，最近想围绕这两个项目之一做本科毕业设计，看这篇文章难度不大，想拿来翻译一下，顺便为之后一些技术文档的翻译打个基础。但碍于缺少翻译经验，实际翻译起来有些地方还挺难找到对应的词句，所以就按照自己的理解翻译了，请大家多多包涵:) 原文地址: Ceph and Swift: Why we are not fighting. 序言我刚刚从香港的Op">
+<meta name="keywords" content="Distributed Storage,Ceph,OpenStack Swift">
+<meta property="og:type" content="article">
+<meta property="og:title" content="分布式存储项目Ceph与Swift对比">
+<meta property="og:url" content="https://stardust-blog.cn/翻译/分布式存储项目Ceph与Swift对比/index.html">
+<meta property="og:site_name" content="Stardust&#39;s Blog">
+<meta property="og:description" content="这是一篇2013年发表的关于Ceph和Swift对比的文章，最近想围绕这两个项目之一做本科毕业设计，看这篇文章难度不大，想拿来翻译一下，顺便为之后一些技术文档的翻译打个基础。但碍于缺少翻译经验，实际翻译起来有些地方还挺难找到对应的词句，所以就按照自己的理解翻译了，请大家多多包涵:) 原文地址: Ceph and Swift: Why we are not fighting. 序言我刚刚从香港的Op">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="https://stardust-blog.cn/翻译/分布式存储项目Ceph与Swift对比/cepharch.jpg">
+<meta property="og:image" content="https://stardust-blog.cn/翻译/分布式存储项目Ceph与Swift对比/wsgipipeline.png">
+<meta property="og:image" content="https://stardust-blog.cn/翻译/分布式存储项目Ceph与Swift对比/Ceph对象存储.png">
+<meta property="og:updated_time" content="2018-12-21T15:54:44.119Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="分布式存储项目Ceph与Swift对比">
+<meta name="twitter:description" content="这是一篇2013年发表的关于Ceph和Swift对比的文章，最近想围绕这两个项目之一做本科毕业设计，看这篇文章难度不大，想拿来翻译一下，顺便为之后一些技术文档的翻译打个基础。但碍于缺少翻译经验，实际翻译起来有些地方还挺难找到对应的词句，所以就按照自己的理解翻译了，请大家多多包涵:) 原文地址: Ceph and Swift: Why we are not fighting. 序言我刚刚从香港的Op">
+<meta name="twitter:image" content="https://stardust-blog.cn/翻译/分布式存储项目Ceph与Swift对比/cepharch.jpg">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="https://stardust-blog.cn/翻译/分布式存储项目Ceph与Swift对比/">
+
+
+
+
+
+  <title>分布式存储项目Ceph与Swift对比 | Stardust's Blog</title><!-- hexo-inject:begin --><!-- hexo-inject:end -->
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope="" itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <!-- hexo-inject:begin --><!-- hexo-inject:end --><div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope="" itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Stardust's Blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">Live in thinking</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br>
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br>
+            
+            Archives
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://stardust-blog.cn/翻译/分布式存储项目Ceph与Swift对比/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Stardust">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Stardust's Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">分布式存储项目Ceph与Swift对比</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2017-12-02T14:44:12+08:00">
+                2017-12-02
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/翻译/" itemprop="url" rel="index">
+                    <span itemprop="name">翻译</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>这是一篇2013年发表的关于Ceph和Swift对比的文章，最近想围绕这两个项目之一做本科毕业设计，看这篇文章难度不大，想拿来翻译一下，顺便为之后一些技术文档的翻译打个基础。但碍于缺少翻译经验，实际翻译起来有些地方还挺难找到对应的词句，所以就按照自己的理解翻译了，请大家多多包涵:)</p>
+<p>原文地址: <a href="http://ceph.com/geen-categorie/ceph-and-swift-why-we-are-not-fighting/" target="_blank" rel="noopener">Ceph and Swift: Why we are not fighting.</a></p>
+<h2 id="序言"><a href="#序言" class="headerlink" title="序言"></a>序言</h2><p>我刚刚从香港的OpenStack峰会回来。与往常一样，在那里你可以对着一大群人发表激情澎湃的演讲或是观看他人的展示，还有为我们共同热爱的软件绘制蓝图。</p>
+<p>在会上和别人讨论的时候，总会有人问我这个问题: 到底Ceph和Swift哪个更好?</p>
+<p>早在2008年，当OpenStack还仅仅是一个想法的时候，我就参加了Swift项目，而现在已经成为了项目的核心开发者,因此我的回答显然会有偏向性。</p>
+<p>当一个更好的产品出现时，人们理所当然地会淘汰旧的转而使用新的，这也正是我们科技发展中一次正常的演进。我记得当时Linux刚起步那时候，我仍旧坚持使用Linux终端上的Lynx(译者注：一个命令行的纯文字浏览器)和其他工具而避开X11，因为我当时没有看到它的价值所在。而现在我却非常愉快地用着Mac OS X:)</p>
+<p>但是Ceph和Swift却不是彼此竞争的，它们是两种完全不同的技术，有着各自的目的。的确它们有些特性是相重合的，但其仍然有不同的使用场景，而且能够在同一个项目中很好地共存.</p>
+<h2 id="特点对比"><a href="#特点对比" class="headerlink" title="特点对比"></a>特点对比</h2><p>概括性地看，这两种对象存储技术各有一些不同的特点:</p>
+<p>Ceph:</p>
+<ul>
+<li>2006年起步</li>
+<li>使用C++编写</li>
+<li>强一致性</li>
+<li>块存储</li>
+<li>对象存储</li>
+</ul>
+<p>Swift:</p>
+<ul>
+<li>2008年起步</li>
+<li>使用Python编写</li>
+<li>最终一致性</li>
+<li>对象存储</li>
+<li>已部署到大规模公有云的生产环境中使用</li>
+</ul>
+<h2 id="Ceph"><a href="#Ceph" class="headerlink" title="Ceph"></a>Ceph</h2><img src="/翻译/分布式存储项目Ceph与Swift对比/cepharch.jpg" title="ceph架构图">
+<p>Ceph做的远不只是对象存储。把Ceph作为开源的块存储(提供远程虚拟磁盘的一种方式)是最开始吸引开发者们使用的原因。后来Ceph在OpenStack社区逐渐成为一个非常流行的块存储方式，对OpenStack和开源社区来说都是好事，由此可见它在这方面做的十分出色.</p>
+<p>Ceph能够作为块存储是因为它遵循强一致性，保证你每次写入磁盘时，客户端收到确认后，写入一定是成功的。同时用C++编写不仅使得Ceph在性能上得到了优化，并且这样的设计也允许客户端能够直接与<a href="http://docs.ceph.com/docs/giant/man/8/ceph-osd/" target="_blank" rel="noopener">Storage Server(OSDs)</a>进行通信.</p>
+<p>Ceph的文件存储目前还在开发中，目前还没准备好上生产环境，但到时候它应该能解决一个研究已久的、极其困难而复杂的问题。</p>
+<h2 id="Swift"><a href="#Swift" class="headerlink" title="Swift"></a>Swift</h2><p>与Ceph不同，Swift只做一件事并把它做到极致，那就是只把目光放在对象存储上，并提供一个REST API来访问。Swift是最终一致性的，意味着当硬件宕机的时候(在集群中往往是不可避免的)，Swift会回滚并提供高可用的数据。Swift的最终一致性窗口只会在两种情况下可见：访问在硬件宕机时被写入的对象，以及许多对象被写入容器时访问该容器的对象列表.</p>
+<p>最终一致性还允许Swift集群被部署在地理上相距较远的机房。这不仅仅是一个使用类似”日志重放”的备份，它允许使用者在集群中针对各个区域(region)配置同步或异步的备份策略，Swift的<a href="https://docs.openstack.org/swift/latest/proxy.html#module-swift.proxy.server" target="_blank" rel="noopener">Proxy Server</a>需要清楚它们在哪种区域。这一点就允许使用者优化吞吐量，并决定新写入数据的分布情况。</p>
+<img src="/翻译/分布式存储项目Ceph与Swift对比/wsgipipeline.png" title="WSGI Pipeline">
+<p>Swift使用Python来编写对使用者来说有许多好处，不仅仅是因为这个语言本身，还因为Python能更方便地配置各种中间件，能够直接合并到<a href="https://en.wikipedia.org/wiki/Web_Server_Gateway_Interface" target="_blank" rel="noopener">WSGI pipeline</a>中。这也使得Swift能够配置各个不同的认证系统，集成各种中间件以修改原有功能或加入新特性。</p>
+<p>和Python类似，Swift也遵循”batteries included”(大意是内置了各种可用的工具，不需要自己折腾)的设计思想，你可以选择配置不同的<a href="https://docs.openstack.org/swift/latest/development_middleware.html" target="_blank" rel="noopener">中间件</a>，甚至可以让它成为S3的替代品.</p>
+<p>Swift最后一个优点在于它已经在大规模的生产环境集群中被证明可用，包括许多不同的公有云已经在使用它(例如<a href="http://rackspacecloud.com/" target="_blank" rel="noopener">Rackspace</a>、<a href="http://hpcloud.com/" target="_blank" rel="noopener">HP</a>、<a href="http://cloudwatt.com/" target="_blank" rel="noopener">Cloudwatt</a>、<a href="http://www.youtube.com/watch? v=9vUCw0t63aY" target="_blank" rel="noopener">MercadoLibre</a>等等…)并得到了不错的反馈。</p>
+<img src="/翻译/分布式存储项目Ceph与Swift对比/Ceph对象存储.png" title="Ceph对象存储">
+<p>另一方面，Ceph是通过<a href="http://docs.ceph.com/docs/master/man/8/radosgw/" target="_blank" rel="noopener">Rados Gateway</a>(译者注: radosgw，一个构建在librados之上，用libfcgi实现的一个FastCGI模块，提供REST访问接口)提供对象存储服务，虽然已经提供了<a href="http://docs.ceph.com/docs/master/radosgw/s3/" target="_blank" rel="noopener">与S3兼容的API</a>，它仍然不如一个完整的Python WSGI系统，而且也不允许模块化。把它作为gateway使用的一个问题就是总要仿照Swift API定义。尽管目前它核心的API定义已经较为完善、稳定且向后兼容，它仍然无法包含Swift内所有的中间件。</p>
+<h2 id="应用场景"><a href="#应用场景" class="headerlink" title="应用场景"></a>应用场景</h2><p>如果你必须要选择其中之一且对块存储有需求的话，你必然想选用Ceph。但如果只有对象存储的使用场景的话我会建议你选用Swift.</p>
+<p>虽然前面提到有场景会同时使用两个系统，但有些团队不愿意管理两个运行着不同系统的集群。如果你想使用S3 API或Swift API，Radosgw对于一些简单的应用场景来说足够好用，但它不能提供一个功能完备的对象存储系统。另一个需要考虑的因素是Radosgw存储的对象不能通过块存储系统访问，这是因为不同的使用模式导致它们会被部署在不同的硬件设备上。</p>
+<p>最后，感谢Red Hat Gluster团队，Swift现在拥有了<a href="https://docs.openstack.org/swift/latest/development_ondisk_backends.html" target="_blank" rel="noopener">multi-backend系统(现在叫Pluggable On-Disk Back-end)</a>，能够让开发者为Swift配置不同的存储后端，意味着你可以高效地将ceph配置在对象存储服务器上.</p>
+<p>这个话题目前还没结束，Swift和Ceph的开发者已经进行了讨论并尝试看如何将他们接在一起。但是最终这个功能将会给用户提供一个管理成本最小化的选择。</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>不要把Swift和Ceph当做竞争对手。它们都是很棒的开源项目，各自都有一些具体的目标。它们关键的竞争点在于专利软件解决方案导致的供应商锁定(vendor lock-in)。Swift和Ceph，包括它们活跃的社区生态，对绝大部分的应用场景来说都是非常好的解决方案.</p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Distributed-Storage/" rel="tag"># Distributed Storage</a>
+          
+            <a href="/tags/Ceph/" rel="tag"># Ceph</a>
+          
+            <a href="/tags/OpenStack-Swift/" rel="tag"># OpenStack Swift</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/笔记/分布式块存储系统sheepdog学习笔记/" rel="next" title="分布式块存储系统sheepdog学习笔记">
+                <i class="fa fa-chevron-left"></i> 分布式块存储系统sheepdog学习笔记
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/翻译/6-824分布式课程讲稿翻译一/" rel="prev" title="MIT 6.824分布式课程讲稿翻译 - Lec 1">
+                MIT 6.824分布式课程讲稿翻译 - Lec 1 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">Stardust</p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">17</span>
+                  <span class="site-state-item-name">posts</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                
+                  <span class="site-state-item-count">2</span>
+                  <span class="site-state-item-name">categories</span>
+                
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                
+                  <span class="site-state-item-count">29</span>
+                  <span class="site-state-item-name">tags</span>
+                
+              </div>
+            
+
+          </nav>
+
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#序言"><span class="nav-number">1.</span> <span class="nav-text">序言</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#特点对比"><span class="nav-number">2.</span> <span class="nav-text">特点对比</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Ceph"><span class="nav-number">3.</span> <span class="nav-text">Ceph</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Swift"><span class="nav-number">4.</span> <span class="nav-text">Swift</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#应用场景"><span class="nav-number">5.</span> <span class="nav-text">应用场景</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#总结"><span class="nav-number">6.</span> <span class="nav-text">总结</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Stardust</span>
+
+  
+</div>
+
+
+  <div class="powered-by">Powered by <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a></div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">Theme &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Muse</a> v5.1.4</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+  
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+          processEscapes: true,
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+        }
+      });
+    </script>
+
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Queue(function() {
+        var all = MathJax.Hub.getAllJax(), i;
+        for (i=0; i < all.length; i += 1) {
+          all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+      });
+    </script>
+    <script type="text/javascript" src="//cdn.bootcss.com/mathjax/2.7.1/latest.js?config=TeX-AMS-MML_HTMLorMML"></script><!-- hexo-inject:begin --><!-- Begin: Injected MathJax -->
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config("");
+</script>
+
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for(i=0; i < all.length; i += 1) {
+      all[i].SourceElement().parentNode.className += ' has-jax';
+    }
+  });
+</script>
+
+<script type="text/javascript" src="//cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+<!-- End: Injected MathJax -->
+<!-- hexo-inject:end -->
+  
+
+
+  
+
+  
+
+</body>
+</html>

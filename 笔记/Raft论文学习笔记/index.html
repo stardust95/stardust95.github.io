@@ -1,0 +1,1244 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-CN">
+<head><meta name="generator" content="Hexo 3.8.0">
+  <!-- hexo-inject:begin --><!-- hexo-inject:end --><meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css">
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css">
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="Distributed System,Algorithm,Distributed,">
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="介绍 一致性算法允许一组机器像一个整体一样工作, 即使其中一些机器出现故障也能够继续工作下去, 因此一致性算法在构建可信赖的大规模软件系统中扮演着重要的角色.  过去10年里Paxos算法统治着一致性算法这一领域, 但Paxos算法十分难以理解, 且Paxos自身的算法结构需要进行大幅的修改才能够应用到实际的系统中.  在设计Raft算法的时候, 我们使用了一些技巧来提高它的可理解性, 包括算法分">
+<meta name="keywords" content="Distributed System,Algorithm,Distributed">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Raft论文学习笔记">
+<meta property="og:url" content="https://stardust-blog.cn/笔记/Raft论文学习笔记/index.html">
+<meta property="og:site_name" content="Stardust&#39;s Blog">
+<meta property="og:description" content="介绍 一致性算法允许一组机器像一个整体一样工作, 即使其中一些机器出现故障也能够继续工作下去, 因此一致性算法在构建可信赖的大规模软件系统中扮演着重要的角色.  过去10年里Paxos算法统治着一致性算法这一领域, 但Paxos算法十分难以理解, 且Paxos自身的算法结构需要进行大幅的修改才能够应用到实际的系统中.  在设计Raft算法的时候, 我们使用了一些技巧来提高它的可理解性, 包括算法分">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="https://stardust-blog.cn/笔记/Raft论文学习笔记/figure1.png">
+<meta property="og:image" content="https://stardust-blog.cn/笔记/Raft论文学习笔记/figure4.png">
+<meta property="og:image" content="https://stardust-blog.cn/笔记/Raft论文学习笔记/figure5.png">
+<meta property="og:image" content="https://stardust-blog.cn/笔记/Raft论文学习笔记/figure6.png">
+<meta property="og:image" content="https://stardust-blog.cn/笔记/Raft论文学习笔记/figure7.png">
+<meta property="og:image" content="https://stardust-blog.cn/笔记/Raft论文学习笔记/figure8.png">
+<meta property="og:image" content="https://stardust-blog.cn/笔记/Raft论文学习笔记/figure9.png">
+<meta property="og:image" content="https://stardust-blog.cn/笔记/Raft论文学习笔记/figure10.png">
+<meta property="og:image" content="https://stardust-blog.cn/笔记/Raft论文学习笔记/figure11.png">
+<meta property="og:updated_time" content="2018-12-21T15:54:44.099Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Raft论文学习笔记">
+<meta name="twitter:description" content="介绍 一致性算法允许一组机器像一个整体一样工作, 即使其中一些机器出现故障也能够继续工作下去, 因此一致性算法在构建可信赖的大规模软件系统中扮演着重要的角色.  过去10年里Paxos算法统治着一致性算法这一领域, 但Paxos算法十分难以理解, 且Paxos自身的算法结构需要进行大幅的修改才能够应用到实际的系统中.  在设计Raft算法的时候, 我们使用了一些技巧来提高它的可理解性, 包括算法分">
+<meta name="twitter:image" content="https://stardust-blog.cn/笔记/Raft论文学习笔记/figure1.png">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="https://stardust-blog.cn/笔记/Raft论文学习笔记/">
+
+
+
+
+
+  <title>Raft论文学习笔记 | Stardust's Blog</title><!-- hexo-inject:begin --><!-- hexo-inject:end -->
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope="" itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <!-- hexo-inject:begin --><!-- hexo-inject:end --><div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope="" itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Stardust's Blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">Live in thinking</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br>
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br>
+            
+            Archives
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://stardust-blog.cn/笔记/Raft论文学习笔记/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Stardust">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Stardust's Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">Raft论文学习笔记</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2018-01-08T16:55:40+08:00">
+                2018-01-08
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/笔记/" itemprop="url" rel="index">
+                    <span itemprop="name">笔记</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h1 id="介绍"><a href="#介绍" class="headerlink" title="介绍"></a>介绍</h1><ul>
+<li>一致性算法允许一组机器像一个整体一样工作, 即使其中一些机器出现故障也能够继续工作下去, 因此一致性算法在构建可信赖的大规模软件系统中扮演着重要的角色. </li>
+<li>过去10年里Paxos算法统治着一致性算法这一领域, 但Paxos算法十分难以理解, 且Paxos自身的算法结构需要进行大幅的修改才能够应用到实际的系统中. </li>
+<li>在设计Raft算法的时候, 我们使用了一些技巧来提高它的可理解性, 包括算法分解(Raft主要被分成Leader选举, 日志复制和安全性保证三个模块)和减少状态机的状态(相比于Paxos, Raft减少了非确定性和服务器互相处于非一致性的方式)。</li>
+<li>Raft和许多现有的一致性算法都很相似(主要是Vierstamped Replication), 但也有一些独特的特性:<ul>
+<li>强Leader: 和其他的一致性算法相比, Raft使用一种更强的领导能力形式. 比如日志条目只从Leader发送给其他服务器. 这种方式简化了对复制日志的管理, 并且使得Raft算法更加易于理解. </li>
+<li>Leader选举: Raft算法使用一个随机的计时器来选举Leader. 这种方式只是在任何一致性算法都必须实现的心跳机制上增加了一点机制. 在解决冲突的时候会更加简单快捷. </li>
+<li>成员关系调整: Raft使用一种共同一致的方法来处理集群成员变换的问题, 在这种方法下, 处于调整过程中的两种不同的配置集群中<strong>大多数机器会有重叠</strong>, 这就使得集群在成员变换的时候依然可以继续工作. </li>
+</ul>
+</li>
+</ul>
+<h1 id="背景-复制状态机"><a href="#背景-复制状态机" class="headerlink" title="背景: 复制状态机"></a>背景: 复制状态机</h1><img src="/笔记/Raft论文学习笔记/figure1.png">
+<blockquote>
+<p>图1: 复制状态机的结构. 一致性算法管理着来自客户端指令的复制日志. 状态机从日志中以相同顺序处理相同指令, 所以产生的结果也是相同的. </p>
+</blockquote>
+<ul>
+<li>一致性算法是从复制状态机的背景下提出的. 在这种方法中, 一组服务器上的状态机产生相同状态的副本, 并且在一些机器宕掉的情况下也可以继续运行. 复制状态机在分布式系统中被用于解决很多<strong>容错问题</strong>. 例如, 大规模系统中通常都有一个Leader, 像GFS, HDFS和RAMCloud. 典型应用就是一个独立的复制状态机去管理Leader选举和存储配置信息, 并在Leader宕机的情况下也要存活下来, 如Chubby和ZooKeeper. </li>
+<li>复制状态机通常都是基于复制日志实现的, 如图1. <strong>每个服务器</strong>存储一个包含一系列指令的日志, 并按照日志的顺序执行这些指令. 因为每个状态机都是确定的, 因此每一次执行操作都产生<strong>相同的状态和同样的序列</strong>. </li>
+<li>一致性算法的工作就是用来保证复制日志相同. 在<strong>每台服务器上运行的</strong>一致性模块接收客户端发来的指令, 然后增加到自己的日志中去. 它和其他服务器上的一致性模块进行通信, 以保证每个服务器上的日志最终都以相同的顺序包含相同的指令, 尽管有些服务器会宕机. </li>
+<li>一旦指令被正确地复制, 每一个服务器上的状态机就能按照日志的顺序处理, 并输出结果返回给客户端. 因此, 服务器集群就形成了一个高可靠的状态机. </li>
+<li>实际系统中使用的一致性算法通常有以下特性: <ul>
+<li>安全性保证: 在非拜占庭错误情况下, 对于网络延迟、分区、丢包、冗余和乱序等错误都可以保证正确。</li>
+<li>可用性：急群众只要有<strong>大多数(即超过二分之一)</strong>机器可运行并能够相互通信、能和客户端通信，系统就保证可用。例如一个典型的包含5个节点的集群可以容忍两个节点的失败，仍然保持可用。</li>
+<li>不依赖时序来保证一致性：物理时钟错误或者极端的消息延迟只在最坏的情况下才会导致可用性问题。</li>
+<li>通常情况下，一条指令可以在集群中大多数节点响应一轮RPC时完成，其余小部分较慢的节点不影响整体性能。</li>
+</ul>
+</li>
+</ul>
+<h1 id="Paxos算法的问题"><a href="#Paxos算法的问题" class="headerlink" title="Paxos算法的问题"></a>Paxos算法的问题</h1><h1 id="为了可理解性的设计"><a href="#为了可理解性的设计" class="headerlink" title="为了可理解性的设计"></a>为了可理解性的设计</h1><ul>
+<li>尽管可理解性这个特点具有高度主观性, 我们使用了两种通常适用的技术来解决这个问题:<ul>
+<li>问题分解: 尽可能将分体分解成几个相对独立的、课被解决的、可解释的和可理解的子问题。例如Raft算法被我们分成Leader选举，日志复制，安全性几个部分。</li>
+<li>减少状态的数量来简化需要考虑的状态空间，使得系统更加连贯并且尽可能消除不确定性。特别的，所有的日志是不允许有空洞的，并且Raft限制了日志之间变成不一致状态的可能。但也有一些情况下不确定性能提升可理解性, 例如使用随机化的方法增加了不确定性, 但是这有利于减少状态空间的数量. </li>
+</ul>
+</li>
+</ul>
+<h1 id="Raft一致性算法"><a href="#Raft一致性算法" class="headerlink" title="Raft一致性算法"></a>Raft一致性算法</h1><ul>
+<li>Raft是一种用来管理复制日志的一致性算法: 通过选举一个Leader, 然后给予它管理复制日志的全部责任来实现一致性. </li>
+<li>Leader从客户端接收日志条目, 把日志条目复制到其他服务器上, 并且当保证安全性的时候告诉其他的服务器把日志条目<strong>应用(apply)</strong>到它们的状态机中. Leader的设置简化了对复制日志的管理. 例如Leader可以决定新的日志条目放在日志中的位置(索引值)而不需要与其他服务器商议, 并且数据都从Leader流向其他服务器. </li>
+<li>通过Leader, Raft将一致性问题分解成了三个相对独立的子问题, 这些问题会在接下来的子章节中进行讨论:<ul>
+<li>Leader选举: 当前的Leader宕机时, 一个新的Leader需要被选举出来(5.2节)</li>
+<li>日志复制: Leader必须从客户端接收日志然后复制到集群中的其他节点, 并强制要求其他节点的日志保持和自己相同. </li>
+<li>安全性: 在Raft中安全性的关键是在图3(5.8节)中特性展示的状态机安全: 如果有任何的服务器节点已经把一个确定的日志条目应用到它的状态机中, 那么其他服务器节点不能再同一个日志索引位置应用一个不同的指令. 章节5.4阐述了Raft算法如何保证这个特性, 这个解决方案涉及到一个额外的选举机制(5.2节)上的限制</li>
+</ul>
+</li>
+</ul>
+<h2 id="Raft基础"><a href="#Raft基础" class="headerlink" title="Raft基础"></a>Raft基础</h2><ul>
+<li>一个Raft集群包含若干个服务器节点. 任何时刻, 每个服务器节点都处于这三个状态之一: Leader, Follower或者Candidate. <ul>
+<li>Follower: 通常情况下系统中只有一个Leader, 并且其他的节点全都是Follower. Follower是被动的: 它们不会发送任何请求, 只是简单地响应来自Leader或Candidate的请求. </li>
+<li>Leader: Leader处理所有的客户端请求. 如果一个客户端将请求发送给了Follower, 那么Follower会把请求重定向到Leader. </li>
+<li>Candidate: Candidate是在Leader选举时使用的.<br>下图展示了这些状态和它们之间的转换:<img src="/笔记/Raft论文学习笔记/figure4.png">
+<blockquote>
+<p>图4. 服务器状态. Follower只响应来自其他服务器的请求. 如果Follower接收不到消息, 那么它就会变成Candidate并发起一次选举(election). 获得集群中大多数选票的Candidate成为Leader. 在一个任期内, Leader一直保持Leader的角色(直到宕机). </p>
+</blockquote>
+</li>
+</ul>
+</li>
+<li>Raft把时间分割成任意长度的<strong>任期(term)</strong>, 如下图所示:   <img src="/笔记/Raft论文学习笔记/figure5.png">
+<blockquote>
+<p>图5. 时间被划分成一个个的任期，每个任期开始都是一次选举。在选举成功后，Leader会管理整个集群直到任期结束。有时候选举会失败，那么这个任期就会没有Leader而结束。任期之间的切换可以在不同的时间不同的服务器上观察到。<br>  每一段任期从一次选举开始, 一个或多个Candidate尝试成为Leader. 如果一个Candidate赢得选举, 它就在这个任期中充当Leader的职责. 在某些情况下, 一次选举过程会出现选票被平分, 那么这一任期会以没有Leader结束, 一个新的任期(新的选举)会很快重新开始. Raft保证一个任期内最多只有一个Leader. </p>
+</blockquote>
+</li>
+<li>不同服务器节点可能多次观察到任期之间的转换, 也可能观察不到任何一次选举或整个任期全程. </li>
+<li>任期在Raft中充当逻辑时钟的作用, 允许服务器查明一些过期信息(比如旧的Leader). </li>
+<li>每个节点存储一个当前任期号, 这一编号总是单调增长. </li>
+<li>当服务器之间通信的时候回交换当前的任期号信息: <ul>
+<li>如果一个服务器当前任期号比别人小(即任期号过期了), 就会更新自己的编号到较大的值</li>
+<li>如果一个Candidate或Leader发现自己的任期号过期了, 那么他会立即恢复成Follower</li>
+<li>如果一个节点收到一个包含过期的任期号的请求, 会直接拒绝这个请求</li>
+</ul>
+</li>
+<li>Raft中服务器通信使用RPC(远程过程调用)来完成, 并且基本的一致性算法只需要两种类型的RPC:<ul>
+<li>请求投票(RequestVote)RPC由Candidate在选举期间发起</li>
+<li>附加条目(AppendEntries)RPC由Leader发起, 用于复制日志和<strong>提供心跳机制</strong></li>
+<li>第7章增加了第三种RPC用于服务器之间传输快照</li>
+</ul>
+</li>
+<li>服务器会并行发起RPC来获得最佳的性能. 当服务器没有及时收到RPC的响应回复, 会进行重试. </li>
+</ul>
+<h2 id="Leader选举"><a href="#Leader选举" class="headerlink" title="Leader选举"></a>Leader选举</h2><ul>
+<li>Raft使用心跳机制来触发Leader选举. </li>
+<li>服务器启动时都是Follower的身份, 直到它从Leader或者Candidate接收到有效的RPC. </li>
+<li>Leader周期性地向所有Follower发送心跳包(即不包含日志项内容的附加日志项RPC)来维持自己的身份. </li>
+<li>如果一个Follower在一段时间内没有接收到任何消息, 也就是<strong>选举超时</strong>, 那么它就会认为系统中没有可用Leader, 并发起新一轮选举以选出新的Leader. </li>
+<li>要开始一次选举, Follower首先要增加自己当前任期号, 并转为Candidate角色. 然后它并行地向集群中的其他所有节点发送请求投票的RPC来给自己投票. </li>
+<li>Candidate会保持当前角色, 直到发生下列三种情况之一:<ul>
+<li>他自己赢得了这次选举</li>
+<li>其他的节点成为Leader</li>
+<li>一段时间后没有任何一个获胜的节点</li>
+</ul>
+</li>
+<li>当Candidate从整个集群的大多数节点(保证了选举安全性)获得了针对同一个任期的投票, 那么它就赢得了这次选举并成为Leader. 每个服务器对一个任期号最多只投出一张选票, 按照先来先服务的原则(注意: 5.4节在投票上增加了一些限制). 一旦Candidate赢得选举, 就立即成为Leader, 并向其他服务器发送心跳消息来建立自己的权威, 并防止有节点重新开始选举. </li>
+<li>在等待投票时, Candidate可能会从其他服务器接收到声明Leader的心跳消息. 如果这个Leader的任期号(包含在RPC参数中)不小于Candidate当前的任期号, 那么Candidate就会承认该Leader合法并回到Follower状态; 否则Candidate就会拒绝这次RPC并继续保持Candidate状态. </li>
+<li>第三种结果是Candidate既没有赢得选举也没有输, 即选票被各个Candidate平分. 这时候每一个Candidate都会超时, 然后通过增加当前任期号来开始新一轮选举. 但没有其他机制的话, 选票可能会被无限地重复平分. </li>
+<li>Raft算法使用随机选举超时时间来确保很少发生选票平分的情况:<ul>
+<li>为了阻止选票最初就被平分, 选举超时时间是从一个固定的区间(如150-300ms)随机选择. 这样可以把服务器都分散开来, 以至于大多数情况下<strong>只有一个服务器会选举超时(即选择的超时时间最短的)</strong>, 然后它赢得选举并在并在其他服务器超时之前发送心跳包. 在选票平分的情况下也使用同样的机制: 每个Candidate在开始第一次选举的时候会重置一个随机的选举超时时间, 然后在超时时间内等待投票结果, 这样就减少了在<strong>新的选举中</strong>另外的选票平分的可能性. </li>
+</ul>
+</li>
+</ul>
+<h2 id="日志复制"><a href="#日志复制" class="headerlink" title="日志复制"></a>日志复制</h2><ul>
+<li>一旦一个Leader被选举出来, 它就开始为客户端提供服务. 客户端每个请求都包含一条能被复制状态机执行的指令. Leader把这条指令作为一条新的日志条目附加到日志中去, 然后并行地发起附加条目RPC到其他服务器, 让他们复制这条日志. </li>
+<li>当这条日志被安全地复制, Leader会把这条日志应用到它的状态集中, 然后把执行结果返回给客户端. 如果某些Follower宕机或运行缓慢, 或网络丢包, Leader会不断地重复RPC(尽管已经回复了客户端)直到所有Follower都最终存储了所有的日志条目. </li>
+<li>日志以下图展示的方式组织:  <img src="/笔记/Raft论文学习笔记/figure6.png">
+<blockquote>
+<p>图6: 日志由有序序号标记的条目组成。每个条目都包含<strong>创建时的任期号</strong>（图中框中的数字），和一个状态机需要执行的指令。当一个条目可以<strong>安全地被应用</strong>到状态机中去的时候，就认为是<strong>可以提交</strong>了。<br>  日志中的任期号用来检查是否出现不一致, 同时也用来保证图3中的某些性质. 每一条日志条目同时也有一个整数<strong>索引值</strong>来表明它在日志中的位置. </p>
+</blockquote>
+</li>
+<li>Leader来决定什么时候把日志条目应用到状态机中是安全的, 这种已被应用的日志条目被称为<strong>已提交</strong>。Raft 算法保证所有已提交的日志条目都是<strong>持久化的并且最终会被所有可用的状态机执行</strong>. 在Leader将创建的日志条目<strong>复制到大多数的服务器上</strong>的时候，日志条目就会被提交（例如在图6中的条目7）. 同时，Leader的日志中之前的所有日志条目也都会被提交，包括由其他Leader创建的条目。</li>
+<li>Leader跟踪了最大的将会被提交的日志项索引, 并且索引值会包含在未来所有的附加日志RPC(包括心跳包), 这样其他服务器才能最终知道Leader的提交位置. </li>
+<li>一旦Follower知道一条日志条目已提交, 那么他也会将这个日志条目应用到本地状态机(按照日志的顺序). </li>
+<li>Raft 的日志机制来维护一个不同服务器的日志之间的高层次的一致性, 不仅简化了系统的行为也使得更加可预计，同时也是安全性保证的一个重要组件。</li>
+<li>Raft维护着以下特性(即图3中的日志匹配特性):<ul>
+<li>如果在不同的日志中的两个条目拥有相同的索引和任期号，那么他们存储了相同的指令。</li>
+<li>如果在不同的日志中的两个条目拥有相同的索引和任期号，那么他们之前的所有日志条目也全部相同。</li>
+</ul>
+</li>
+<li>这两个特性中, 第一个特性来自: 在一个任期里, Leader最多在指定的一个日志索引位置创建一条日志条目, 同时日志条目在日志中的位置也从来不会改变.<br>  第二个特性由附加日志RPC的一个简单的一致性检查所保证. 在发送附加日志RPC时, Leader会把新的日志条目<strong>紧接着前一个条目的索引位置和任期号包含在里面</strong>. 如果Follower在它的日志中找不到包含相同索引位置和任期号的条目, 它就会<strong>拒绝接受</strong>新的日志条目. </li>
+<li>一致性检查就像一个归纳步骤: 一开始日志为空时状态肯定是满足日志匹配特性的. 当日志扩展的时候, 一致性检查保护了日志匹配特性. 因此每当附加日志RPC返回成功时, Leader就能确定Follower的日志一定是和自己相同的了. </li>
+<li>然而Leader宕机的情况可能会使得Leader和Follower的日志处于不一致的状态(旧的Leader可能还没有完全复制所有的日志条目). 下图展示了Follower的日志可能和新的Leader不同的方式. Follower可能会比新的Leader多出或缺少一些日志, 或者两者都有. 多出或缺少的日志可能会持续多个任期.   <img src="/笔记/Raft论文学习笔记/figure7.png">
+<blockquote>
+<p>图 7：当一个Leader成功当选时，Follower可能是任何情况（a-f）。每一个盒子表示是一个日志条目；里面的数字表示任期号。Follower可能会缺少一些日志条目（a-b），可能会有一些未被提交的日志条目（c-d），或者两种情况都存在（e-f）。例如，场景f可能会这样发生，某服务器在任期2的时候是Leader，已附加了一些日志条目到自己的日志中，但在提交之前就崩溃了；很快这个机器就被重启了，在任期3重新被选为Leader，并且又增加了一些日志条目到自己的日志中；在任期2和任期3的日志被提交之前，这个服务器又宕机了，并且在接下来的几个任期里一直处于宕机状态。</p>
+</blockquote>
+</li>
+<li>在Raft中, Leader处理不一致是通过强制Follower复制自己的日志来解决, 因此Follower中冲突的日志条目会被Leader的日志覆盖. 5.4节会通过增加一些限制来使得这样的操作安全. </li>
+<li>要使得某个Follower的日志和自己一致, Leader必须找到最后两者达成一致的地方, 然后删除<strong>Follower上的</strong>从那个点之后的所有日志条目, 最后Leader再发送自己在那个点之后的所有日志给Follower. </li>
+<li>Leader针对每个Follower维护了一个<code>nextIndex</code>, 表示下一个需要发送给该Follower的日志索引. Leader刚被选举出来时会初始化所有的<code>nextIndex</code>值为自己最后一条日志的<code>index</code>+1(图7中的11). </li>
+<li>如果一个Follower的日志和Leader不一致, 那么下一次附加日志RPC的一致性检查就会失败. 在被Follower拒绝后, Leader就会减小<code>nextIndex</code>值并进行重试. 最终<code>nextIndex</code>会在某个位置与Follower达成一致. 一旦达成一致, 附加日志RPC就会返回成功, 这时候就会把Follower冲突的日志条目全部删除并加上Leader的日志, 因此Follower的日志就会和Leader保持一致, 并且在接下来的任期内一直继续保持. </li>
+<li>算法可以通过减少被拒绝的附加日志RPC的次数来优化. 例如当附加日志RPC被拒绝的时候, Follower可以返回冲突条目的任期号和自己存储的那个任期的最早的索引地址. 借助这些信息, Leader可以直接让nextIndex越过那个任期冲突的所有日志条目, 这样就变成每个任期需要一次附加条目RPC(而不是每个条目一次). </li>
+<li>这种机制使得Leader在选举成功后不需要任何特殊的操作来恢复一致性, 只需要进行正常的操作, 日志就能自动地在回复附加日志RPC的一致性检查失败的时候自动趋于一致. Leader绝不会覆盖或删除自己的日志(即图3的Leader只附加原则). </li>
+</ul>
+<h2 id="安全性"><a href="#安全性" class="headerlink" title="安全性"></a>安全性</h2><ul>
+<li>到目前为止描述的机制还不能充分保证每个状态机会执行相同的指令序列. 例如一个Follower可能会进入不可用状态, 同时Leader已经提交了若干日志条目, 然后这个Follower可能会被选举为Leader并且覆盖这些(之前已被提交的)日志条目—因此不同的状态机仍可能执行不同的指令序列. </li>
+</ul>
+<h3 id="选举限制"><a href="#选举限制" class="headerlink" title="选举限制"></a>选举限制</h3><ul>
+<li>现在我们需要在Leader选举的时候增加一些限制来完善Raft算法. 这一限制保证了任何Leader对于给定的任期号, 都拥有之前任期的<strong>所有被提交的日志条目</strong>(即图3中的Leader完整性特性)</li>
+<li>在任何基于Leader的一致性算法中, Leader都必须存储所有已经提交的日志条目. </li>
+<li>当一个Candidate没有完全包含所有已提交的日志条目时, Raft使用投票的方式来阻止这个Candidate赢得选举. Candidate为了赢得选举必须联系集群中的大部分节点, 意味着每个已提交的日志条目在这些节点中肯定存在于<strong>至少一个节点</strong>上. 也就是说, 如果Candidate的日志至少和大多数服务器的节点一样新, 那么它一定持有所有已提交的日志. </li>
+<li>Raft通过比较两份日志中最后一条日志条目的索引值和任期号确定较新的日志: 任期号越大的日志越新; 任期号一样, 日志较长的那个较新. </li>
+<li>综上, 请求投票RPC实现了这样的限制: RPC中包含了Candidate的日志信息, 然后投票者会拒绝掉所有日志没有自己新的投票请求. </li>
+</ul>
+<h3 id="提交之前任期内的日志条目"><a href="#提交之前任期内的日志条目" class="headerlink" title="提交之前任期内的日志条目"></a>提交之前任期内的日志条目</h3><ul>
+<li>如5.3节所述, 只要一条日志被存储到大多数服务器上, Leader就能确定这条当前任期内的日志是可提交的. 如果Leader在提交日志之前崩溃了, 后续的Leader会继续尝试复制这条记录. </li>
+<li>然而, 一个Leader不能断定一条之前任期的日志被保存到大多数服务器上时一定是已提交的, 下图8展示了一种情况: 一条已被存储到大多数节点上的旧日志条目, 依然可能被后续的Leader覆盖掉.   <img src="/笔记/Raft论文学习笔记/figure8.png">
+<blockquote>
+<p>图8：该时间序列展示了为什么Leader无法通过老的日志的任期号来判断其提交状态。在(a)中，S1是Leader，部分的复制了索引位置2的日志条目。在(b)中，S1崩溃了，然后S5在任期3里通过S3、S4和自己的选票赢得选举，然后从客户端接收了一条不一样的日志条目放在了索引2处。然后到(c)，S5又崩溃了；S1重新启动，选举成功，开始复制日志。在这时，来自任期2的那条日志已经被复制到了集群中的大多数机器上，但是还没有被提交。如果S1在(d)中又崩溃了，S5可以重新被选举成功（通过来自S2，S3和S4的选票），然后覆盖了他们在索引2处的日志。但是，在崩溃之前，如果S1在自己的任期里复制了日志条目到大多数机器上，如(e)中，然后这个条目就会被提交（S5就不可能选举成功）。在这个时候，之前的所有日志就会被正常提交处理。</p>
+</blockquote>
+</li>
+<li>为了消除图8的情况, Raft永远<strong>不会通过计算副本数目的方式</strong>来确定一个<strong>之前任期内的</strong>日志条目是否已提交. 只有当前任期内的日志可以通过计算副本数目判断是否能提交日志, 由于日志匹配的特性, 之前的日志条目也会<strong>间接地被提交</strong>. </li>
+<li>当Leader给Follower复制之前任期里的日志时, Raft会为所有日志<strong>保留原始的任期号</strong>, 这在提交规则上产生了额外的复杂性(因为其他一致性算法在新的Leader重新复制之前任期日志时, 必须使用新任期号), 但更容易辨别出日志, 也使得新的Leader只需要发送更少的日志条目. </li>
+</ul>
+<h3 id="安全性论证"><a href="#安全性论证" class="headerlink" title="安全性论证"></a>安全性论证</h3><ul>
+<li>在给出完整的Raft算法后, 现在可以更精确地讨论Leader完整性特性: 利用反证法, 先假设Leader完整性不存在, 然后推出矛盾来. </li>
+<li>假设任期T的Leader(Leader T)在任期内提交了一条日志条目, 但这条日志没有被存储到未来某个任期的Leader中. 设大于T的最小任期U的Leader U没有这条日志条目:   <img src="/笔记/Raft论文学习笔记/figure9.png">
+<blockquote>
+<p>图9：如果S1（任期T的Leader）提交了一条新的日志在它的任期里，然后S5在之后的任期U里被选举为Leader，然后至少会有一个机器，如S3，既拥有来自S1的日志，也给S5投票了。</p>
+</blockquote>
+</li>
+<li>Leader完整性的证明过程:<ol>
+<li>在Leader U选举的时候一定没有那条被提交的日志条目（Leader从不会删除或者覆盖任何条目）。</li>
+<li>Leader T复制这条日志条目给集群中的大多数节点，同时，Leader U从集群中的大多数节点赢得了选票。因此，至少有一个节点同时接受了来自Leader T的日志条目，并且给Leader U投票了（鸽巢定理），如图9的S3。这个投票者是产生这个矛盾的关键。</li>
+<li>这个投票者必须在给Leader U投票之前先接受了从Leader T发来的已经被提交的日志条目；否则他就会拒绝来自Leader T的附加日志请求（因为此时他的任期号会比T大）。</li>
+<li>投票者在给Leader U投票时依然保有这条日志条目，因为任何中间的Leader都包含该日志条目（根据上述的假设），Leader从不会删除条目，并且Follower只有和Leader冲突的时候才会删除条目。</li>
+<li>投票者把自己选票投给Leader U时，Leader U的日志必须和投票者自己一样新。这就导致了两者矛盾之一。</li>
+<li>首先，如果投票者和Leader U的最后一条日志的任期号相同，那么Leader U的日志至少和投票者一样长，所以Leader U的日志一定包含所有投票者的日志。这是另一处矛盾，因为投票者包含了那条已经被提交的日志条目，但是在上述的假设里，Leader U是不包含的。</li>
+<li>除此之外，Leader U的最后一条日志的任期号就必须比投票人大了。此外，他也比T大，因为投票人的最后一条日志的任期号至少和T一样大（他包含了来自任期T的已提交的日志）。创建了Leader U最后一条日志的之前Leader一定已经包含了那条被提交的日志（根据上述假设，Leader U是第一个不包含该日志条目的Leader）。所以，根据日志匹配特性，Leader U一定也包含那条被提交当然日志，这里产生矛盾。</li>
+<li>这里完成了矛盾。因此，所有比T大的Leader一定包含了所有来自T的已经被提交的日志。</li>
+<li>日志匹配原则保证了未来的Leader也同时会包含被间接提交的条目，例如图8(d)中的索引2。</li>
+</ol>
+</li>
+<li>通过Leader完整性, 我们就能证明图3中的状态机安全特性:<ul>
+<li>如果服务器已经应用了某个给定的索引值的日志条目到自己的状态机里，那么其他的服务器不会在这个索引值上应用一个不同的日志到它的状态机中. </li>
+<li>现在来考虑任意服务器应用一个指定索引位置的日志的最小任期: 日志完全特性保证拥有更高任期号的Leader会存储相同的日志条目，所以之后的任期中, 服务器应用的这个索引值上的日志指令一定也是(与Leader)相同的。</li>
+<li>因此，状态机安全特性是成立的。</li>
+</ul>
+</li>
+</ul>
+<h2 id="Follower和Candidate崩溃"><a href="#Follower和Candidate崩溃" class="headerlink" title="Follower和Candidate崩溃"></a>Follower和Candidate崩溃</h2><ul>
+<li>Follower和Candidate崩溃后的处理方式比Leader要简单得多. 如果Follower或Candidate崩溃了, 那么后续发送给它们的RPC都会失败. Raft处理这种失败的方式就是无限重试:<ul>
+<li>如果崩溃的机器重启了, 那么这些RPC就会成功. </li>
+<li>如果服务器在完成了一个RPC但还没有回复响应时崩溃了, 那么它重新启动后会再次受到同样的请求. Raft的RPC都是幂等的(如果Follower受到一个重复的附加日志RPC, 会直接忽略), 因此重试不会造成任何问题. </li>
+</ul>
+</li>
+</ul>
+<h2 id="时间和可用性"><a href="#时间和可用性" class="headerlink" title="时间和可用性"></a>时间和可用性</h2><ul>
+<li>Raft的要求之一就是安全性不能依赖时间: 即整个系统不能因为某些事件运行得比预期快或者慢一点就产生错误的结果. 但系统可用性(系统可以及时地响应客户端)不可避免地要依赖时间. </li>
+<li>Leader选举时Raft钟对时间要求最为关键的方面, 只要系统满足下面的时间要求, Raft就可以选举并维持一个稳定的Leader: <blockquote>
+<p>广播时间（broadcastTime） &lt;&lt; 选举超时时间（electionTimeout） &lt;&lt; 平均故障间隔时间（MTBF）</p>
+</blockquote>
+</li>
+<li>概念解释: <ul>
+<li>广播时间指的是一个服务器并行地发送RPC给集群中其他服务器并接收响应的平均时间; </li>
+<li>选举超时时间是在5.2节中介绍的选举的超时时间限制; </li>
+<li>平均故障时间就是一台服务器两次故障之间的平均时间; </li>
+</ul>
+</li>
+<li>广播时间必须必选举超时时间小一个量级, 这样Leader才能发送稳定的心跳消息来阻止Follower开始进入选举状态. 通过随机化选举超时时间的方法, 这个不等式也使得选票平分的情况不可能出现. </li>
+<li>选举超时时间应该比平均故障间隔时间小几个数量级, 这样系统才能稳定地运行. 当Leader崩溃后, 整个系统会大约相当于选举超时时间里不可用, 我们希望这种情况在整个系统运行过程中很少出现. </li>
+</ul>
+<h2 id="图表总结"><a href="#图表总结" class="headerlink" title="图表总结"></a>图表总结</h2><h3 id="状态整理"><a href="#状态整理" class="headerlink" title="状态整理"></a>状态整理</h3><h4 id="所有服务器上持久存在的"><a href="#所有服务器上持久存在的" class="headerlink" title="所有服务器上持久存在的:"></a>所有服务器上持久存在的:</h4><div class="table-container">
+<table>
+<thead>
+<tr>
+<th>状态</th>
+<th>解释</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>currentTerm</td>
+<td>服务器最后一次知道的任期号（初始化为 0，持续递增）</td>
+</tr>
+<tr>
+<td>votedFor</td>
+<td>在当前获得选票的Candidate的 Id</td>
+</tr>
+<tr>
+<td>log[]</td>
+<td>日志条目集；每一个条目包含一个用户状态机执行的指令，和收到时的任期号</td>
+</tr>
+</tbody>
+</table>
+</div>
+<h4 id="所有服务器上经常变的"><a href="#所有服务器上经常变的" class="headerlink" title="所有服务器上经常变的:"></a>所有服务器上经常变的:</h4><div class="table-container">
+<table>
+<thead>
+<tr>
+<th>状态</th>
+<th>解释</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>commitIndex</td>
+<td>已知的最大的已经被提交的日志条目的索引值</td>
+</tr>
+<tr>
+<td>lastApplied</td>
+<td>最后被应用到状态机的日志条目索引值（初始化为 0，持续递增）</td>
+</tr>
+</tbody>
+</table>
+</div>
+<h4 id="在Leader里经常改变的-（选举后重新初始化）"><a href="#在Leader里经常改变的-（选举后重新初始化）" class="headerlink" title="在Leader里经常改变的 （选举后重新初始化）:"></a>在Leader里经常改变的 （选举后重新初始化）:</h4><div class="table-container">
+<table>
+<thead>
+<tr>
+<th>状态</th>
+<th>解释</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>nextIndex[]</td>
+<td>对于每一个服务器，需要发送给他的下一个日志条目的索引值（初始化为Leader最后索引值加一）</td>
+</tr>
+<tr>
+<td>matchIndex[]</td>
+<td>对于每一个服务器，已经复制给他的日志的最高索引值</td>
+</tr>
+</tbody>
+</table>
+</div>
+<h3 id="RPC整理"><a href="#RPC整理" class="headerlink" title="RPC整理"></a>RPC整理</h3><h4 id="附加日志RPC-AppendEntries"><a href="#附加日志RPC-AppendEntries" class="headerlink" title="附加日志RPC(AppendEntries):"></a>附加日志RPC(AppendEntries):</h4><p>由Leader负责调用来复制日志指令；也会用作heartbeat</p>
+<div class="table-container">
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>解释</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>term</td>
+<td>Leader的任期号</td>
+</tr>
+<tr>
+<td>leaderId</td>
+<td>Leader的 Id，以便于Follower重定向请求</td>
+</tr>
+<tr>
+<td>prevLogIndex</td>
+<td>新的日志条目紧随之前的索引值</td>
+</tr>
+<tr>
+<td>prevLogTerm</td>
+<td>prevLogIndex 条目的任期号</td>
+</tr>
+<tr>
+<td>entries[]</td>
+<td>准备存储的日志条目（表示心跳时为空；一次性发送多个是为了提高效率）</td>
+</tr>
+<tr>
+<td>leaderCommit</td>
+<td>Leader已经提交的日志的索引值</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="table-container">
+<table>
+<thead>
+<tr>
+<th>返回值</th>
+<th>解释</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>term</td>
+<td>当前的任期号，用于Leader去更新自己</td>
+</tr>
+<tr>
+<td>success</td>
+<td>Follower包含了匹配上 prevLogIndex 和 prevLogTerm 的日志时为真</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>接收者实现：</p>
+<ol>
+<li>如果 <code>term &lt; currentTerm</code> 就返回 false （5.1 节）</li>
+<li>如果日志在 prevLogIndex 位置处的日志条目的任期号和 prevLogTerm 不匹配，则返回 false （5.3 节）</li>
+<li>如果已经存在的日志条目和新的产生冲突（索引值相同但是任期号不同），删除这一条和之后所有的 （5.3 节）</li>
+<li>附加任何在已有的日志中不存在的条目</li>
+<li>如果 <code>leaderCommit &gt; commitIndex</code>，令 commitIndex 等于 leaderCommit 和 新日志条目索引值中较小的一个</li>
+</ol>
+<h4 id="请求投票RPC-RequestVote"><a href="#请求投票RPC-RequestVote" class="headerlink" title="请求投票RPC(RequestVote):"></a>请求投票RPC(RequestVote):</h4><p>由Candidate负责调用用来征集选票（5.2 节）</p>
+<div class="table-container">
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>解释</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>term</td>
+<td>Candidate的任期号</td>
+</tr>
+<tr>
+<td>candidateId</td>
+<td>请求选票的Candidate的 Id</td>
+</tr>
+<tr>
+<td>lastLogIndex</td>
+<td>Candidate的最后日志条目的索引值</td>
+</tr>
+<tr>
+<td>lastLogTerm</td>
+<td>Candidate最后日志条目的任期号</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="table-container">
+<table>
+<thead>
+<tr>
+<th>返回值</th>
+<th>解释</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>term</td>
+<td>当前任期号，以便于Candidate去更新自己的任期号</td>
+</tr>
+<tr>
+<td>voteGranted</td>
+<td>Candidate赢得了此张选票时为真</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>接收者实现：</p>
+<ol>
+<li>如果<code>term &lt; currentTerm</code>返回 false （5.2 节）</li>
+<li>如果 votedFor 为空或者就是 candidateId，并且Candidate的日志至少和自己一样新，那么就投票给他（5.2 节，5.4 节）</li>
+</ol>
+<h3 id="各类角色服务器需遵守的规则"><a href="#各类角色服务器需遵守的规则" class="headerlink" title="各类角色服务器需遵守的规则"></a>各类角色服务器需遵守的规则</h3><p>所有服务器：</p>
+<ul>
+<li>如果<code>commitIndex &gt; lastApplied</code>，那么就 lastApplied 加一，并把<code>log[lastApplied]</code>应用到状态机中（5.3 节）</li>
+<li>如果接收到的 RPC 请求或响应中，任期号<code>T &gt; currentTerm</code>，那么就令 currentTerm 等于 T，并切换状态为Follower（5.1 节）</li>
+</ul>
+<p>Follower（5.2 节）：</p>
+<ul>
+<li>响应来自Candidate和Leader的请求</li>
+<li>如果在超过选举超时时间的情况之前都没有收到Leader的心跳，或者是Candidate请求投票的，就自己变成Candidate</li>
+</ul>
+<p>Candidate（5.2 节）：</p>
+<ul>
+<li>在转变成Candidate后就立即开始选举过程<ul>
+<li>自增当前的任期号（currentTerm）</li>
+<li>给自己投票</li>
+<li>重置选举超时计时器</li>
+<li>发送请求投票的 RPC 给其他所有服务器</li>
+</ul>
+</li>
+<li>如果接收到大多数服务器的选票，那么就变成Leader</li>
+<li>如果接收到来自新的Leader的附加日志 RPC，转变成Follower</li>
+<li>如果选举过程超时，再次发起一轮选举</li>
+</ul>
+<p>Leader：</p>
+<ul>
+<li>一旦成为Leader：发送空的附加日志 RPC（心跳）给其他所有的服务器；在一定的空余时间之后不停的重复发送，以阻止Follower超时（5.2 节）</li>
+<li>如果接收到来自客户端的请求：附加条目到本地日志中，在条目被应用到状态机后响应客户端（5.3 节）</li>
+<li>如果对于一个Follower，最后日志条目的索引值大于等于 nextIndex，那么：发送从 nextIndex 开始的所有日志条目：<ul>
+<li>如果成功：更新相应Follower的 nextIndex 和 matchIndex</li>
+<li>如果因为日志不一致而失败，减少 nextIndex 重试</li>
+</ul>
+</li>
+<li>如果存在一个满足<code>N &gt; commitIndex</code>的 N，并且大多数的<code>matchIndex[i] ≥ N</code>成立，并且<code>log[N].term == currentTerm</code>成立，那么令 commitIndex 等于这个 N （5.3 和 5.4 节）</li>
+</ul>
+<blockquote>
+<p>图2. 以上是关于Raft一致性算法的浓缩总结（不包括成员变换和日志压缩）。</p>
+</blockquote>
+<h2 id="算法保证的特性"><a href="#算法保证的特性" class="headerlink" title="算法保证的特性"></a>算法保证的特性</h2><div class="table-container">
+<table>
+<thead>
+<tr>
+<th>特性</th>
+<th>解释</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>选举安全特性</td>
+<td>对于一个给定的任期号，最多只会有一个Leader被选举出来（5.2 节）</td>
+</tr>
+<tr>
+<td>Leader只附加原则</td>
+<td>Leader绝对不会删除或者覆盖自己的日志，只会增加（5.3 节）</td>
+</tr>
+<tr>
+<td>日志匹配原则</td>
+<td>如果两个日志在相同的索引位置的日志条目的任期号相同，那么我们就认为这个日志从头到这个索引位置之间全部完全相同（5.3 节）</td>
+</tr>
+<tr>
+<td>Leader完整性</td>
+<td>如果某个日志条目在某个任期号中已经被提交，那么这个条目必然出现在更大任期号的所有Leader中（5.4 节）</td>
+</tr>
+<tr>
+<td>状态机安全特性</td>
+<td>如果一个Leader已经在给定的索引值位置的日志条目应用到状态机中，那么其他任何的服务器在这个索引位置不会提交一个不同的日志（5.4.3 节）</td>
+</tr>
+</tbody>
+</table>
+</div>
+<blockquote>
+<p>图3. Raft 在任何时候都保证以上的各个特性。</p>
+</blockquote>
+<h1 id="集群成员变化"><a href="#集群成员变化" class="headerlink" title="集群成员变化"></a>集群成员变化</h1><ul>
+<li>到目前为止，我们都假设集群的<strong>成员信息配置（即加入到一致性算法的服务器集合，下文简称配置）</strong>是固定不变的。</li>
+<li>为了保证自动化的配置修改机制的安全性，转换过程中的任意时间点都不能存在两个Leader。然而，任何直接从旧的配置转换成新配置的方案都是不安全的，在转换期间可能会发生整个集群划分成两个独立的大多数群体，见下图10：  <img src="/笔记/Raft论文学习笔记/figure10.png">
+<blockquote>
+<p>图10：直接从一种配置转到新的配置是十分不安全的，因为各个机器可能在任何的时候进行转换。在这个例子中，集群配额从3台机器变成了5台。不幸的是，存在这样的一个时间点，<strong>两个不同的Leader在同一个任期里都可以被选举成功</strong>(一个是通过旧的配置，一个通过新的配置)</p>
+</blockquote>
+</li>
+<li>因此为保证安全性，配置更改必须使用<a href="https://zh.wikipedia.org/zh-hans/%E4%BA%8C%E9%98%B6%E6%AE%B5%E6%8F%90%E4%BA%A4" target="_blank" rel="noopener">两阶段提交</a>的方法. </li>
+<li>在Raft中，集群先切换到一个过渡的配置（此时状态称为Joint Consensus, 共同一致），一旦共同一致被提交之后，那么系统就再切换到新的配置上。共同一致状态是旧配置和新配置的并集，在此状态下：<ul>
+<li>日志条目被复制给集群中新、旧配置的所有服务器</li>
+<li>新、旧配置的服务器都可以称为Leader</li>
+<li>达成一致（针对选举和提交）需要<strong>分别</strong>在两种配置上获得大多数的支持<br>共同一致允许独立的服务器在不影响安全的前提下，在不同的时间进行配置转换过程。<br>此外，共同一致使得集群在配置转换的过程中仍可响应请求。</li>
+</ul>
+</li>
+<li>集群配置在复制日志中以<strong>特殊的日志条目</strong>来存储和通信，下图11展示了自动配置转换的过程。  <img src="/笔记/Raft论文学习笔记/figure11.png">
+<blockquote>
+<p>图11：一个配置切换的时间线。虚线表示已经被创建但是还没有被提交的条目。实线表示最后被提交的日志条目。Leader先在自己的日志中创建一条C-old,new的配置条目，并提交到C-old,new（C-old的大多数和C-new的大多数）中。然后同样地再创建C-new条目，并提交到C-new中的大多数。这样<strong>过程中就不存在C-new和C-old可以同时做出决定的时间点。</strong></p>
+</blockquote>
+</li>
+<li>当一个Leader接收到一个改变集群配置的请求，他会以<strong>创建日志条目的形式</strong>将当前使用的配置<strong>更新为共同一致的配置</strong>（即图中的C-old,new）。所有的服务器只使用其日志中最新的配置条目（无论是否已被提交），因此Leader会使用C-old,new的规则来决定日志条目C-old,new什么时候需要被提交。如果此过程中Leader崩溃了，被选出来的新任Leader可能使用C-old配置，也可能是C-old,new配置。但在任何情况下，C-new配置在这一时期都不会单方面地做出决定。</li>
+<li>一旦C-old,new被提交，那么C-old和C-new的成员都不能单独做出决定，并且Leader完整性保证了只有配置为C-old,new的服务器才可能被选举为Leader。这时，Leader再创建一条C-new配置的日志条目并复制给集群就是安全的操作了。</li>
+<li>关于集群成员变化还有三个问题值得讨论：<ul>
+<li>新的服务器可能没有存储任何日志条目，需要一段时间来更新。为了避免这种可用性的间隔时间，Raft在配置更新的时候使用了一种额外的阶段，在这个阶段新的服务器以<strong>没有投票权</strong>的身份加入到集群中（Leader会把日志复制给他们，但不把他们当做是大多数）。</li>
+<li>集群的Leader可能不是新配置的成员。这种情况下，Leader就会在提交了C-new日志后退位（回到Follower状态）。也就是说存在这样一段时间，Leader管理着集群，但不包括它自己；Leader复制日志但是不会把自己算作大多数之一。当C-new被提交时，会发生Leader过渡，因为这时是新配置可以独立工作的最早时间点。在此之前，可能只能从C-old中选出Leader。</li>
+<li>移除不在C-new中的服务器可能会扰乱集群。这些服务器将不会再接收到心跳，所以当选举超时，他们就进行新一轮选举，发送新一轮的请求投票RPC，这样会导致当前Leader回退到Follower状态。新的Leader最终会被选出来，但是被移除的服务器将会再次超时，然后重复这个过程，导致整体可用性大幅降低。为避免这个问题，当服务器确认当前Leader存在后，会忽略请求投票RPC。特别的，当服务器在当前最小选举超时时间内收到一个请求投票RPC，他不会更新当前的任期号或者投出选票。这不会影响正常选举，因为每个服务器在开始一次选举前会等待一个最小选举超时时间，而且这有利于避免被移除的服务器扰乱：如果Leader能向集群发送心跳，那么他就不会被更大的任期号废除。</li>
+</ul>
+</li>
+</ul>
+<!-- # 日志压缩
+
+# 客户端交互
+
+# 相关工作 -->
+<h1 id="程序模拟实现"><a href="#程序模拟实现" class="headerlink" title="程序模拟实现"></a>程序模拟实现</h1><p>见: <a href="https://github.com/stardust95/MIT6.824/blob/master/src/raft/raft.go" target="_blank" rel="noopener">MIT6.824-Lab2: Golang实现的简易Raft库</a></p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Distributed-System/" rel="tag"># Distributed System</a>
+          
+            <a href="/tags/Algorithm/" rel="tag"># Algorithm</a>
+          
+            <a href="/tags/Distributed/" rel="tag"># Distributed</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/笔记/GFS论文学习笔记/" rel="next" title="Google File System(GFS)论文学习笔记">
+                <i class="fa fa-chevron-left"></i> Google File System(GFS)论文学习笔记
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/翻译/6-824分布式课程讲稿翻译-Lab2/" rel="prev" title="6.824分布式课程讲稿翻译-Lab2">
+                6.824分布式课程讲稿翻译-Lab2 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">Stardust</p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">17</span>
+                  <span class="site-state-item-name">posts</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                
+                  <span class="site-state-item-count">2</span>
+                  <span class="site-state-item-name">categories</span>
+                
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                
+                  <span class="site-state-item-count">29</span>
+                  <span class="site-state-item-name">tags</span>
+                
+              </div>
+            
+
+          </nav>
+
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#介绍"><span class="nav-number">1.</span> <span class="nav-text">介绍</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#背景-复制状态机"><span class="nav-number">2.</span> <span class="nav-text">背景: 复制状态机</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Paxos算法的问题"><span class="nav-number">3.</span> <span class="nav-text">Paxos算法的问题</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#为了可理解性的设计"><span class="nav-number">4.</span> <span class="nav-text">为了可理解性的设计</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Raft一致性算法"><span class="nav-number">5.</span> <span class="nav-text">Raft一致性算法</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Raft基础"><span class="nav-number">5.1.</span> <span class="nav-text">Raft基础</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Leader选举"><span class="nav-number">5.2.</span> <span class="nav-text">Leader选举</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#日志复制"><span class="nav-number">5.3.</span> <span class="nav-text">日志复制</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#安全性"><span class="nav-number">5.4.</span> <span class="nav-text">安全性</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#选举限制"><span class="nav-number">5.4.1.</span> <span class="nav-text">选举限制</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#提交之前任期内的日志条目"><span class="nav-number">5.4.2.</span> <span class="nav-text">提交之前任期内的日志条目</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#安全性论证"><span class="nav-number">5.4.3.</span> <span class="nav-text">安全性论证</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Follower和Candidate崩溃"><span class="nav-number">5.5.</span> <span class="nav-text">Follower和Candidate崩溃</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#时间和可用性"><span class="nav-number">5.6.</span> <span class="nav-text">时间和可用性</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#图表总结"><span class="nav-number">5.7.</span> <span class="nav-text">图表总结</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#状态整理"><span class="nav-number">5.7.1.</span> <span class="nav-text">状态整理</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#所有服务器上持久存在的"><span class="nav-number">5.7.1.1.</span> <span class="nav-text">所有服务器上持久存在的:</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#所有服务器上经常变的"><span class="nav-number">5.7.1.2.</span> <span class="nav-text">所有服务器上经常变的:</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#在Leader里经常改变的-（选举后重新初始化）"><span class="nav-number">5.7.1.3.</span> <span class="nav-text">在Leader里经常改变的 （选举后重新初始化）:</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#RPC整理"><span class="nav-number">5.7.2.</span> <span class="nav-text">RPC整理</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#附加日志RPC-AppendEntries"><span class="nav-number">5.7.2.1.</span> <span class="nav-text">附加日志RPC(AppendEntries):</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#请求投票RPC-RequestVote"><span class="nav-number">5.7.2.2.</span> <span class="nav-text">请求投票RPC(RequestVote):</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#各类角色服务器需遵守的规则"><span class="nav-number">5.7.3.</span> <span class="nav-text">各类角色服务器需遵守的规则</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#算法保证的特性"><span class="nav-number">5.8.</span> <span class="nav-text">算法保证的特性</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#集群成员变化"><span class="nav-number">6.</span> <span class="nav-text">集群成员变化</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#程序模拟实现"><span class="nav-number">7.</span> <span class="nav-text">程序模拟实现</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Stardust</span>
+
+  
+</div>
+
+
+  <div class="powered-by">Powered by <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a></div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">Theme &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Muse</a> v5.1.4</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+  
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+          processEscapes: true,
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+        }
+      });
+    </script>
+
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Queue(function() {
+        var all = MathJax.Hub.getAllJax(), i;
+        for (i=0; i < all.length; i += 1) {
+          all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+      });
+    </script>
+    <script type="text/javascript" src="//cdn.bootcss.com/mathjax/2.7.1/latest.js?config=TeX-AMS-MML_HTMLorMML"></script><!-- hexo-inject:begin --><!-- Begin: Injected MathJax -->
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config("");
+</script>
+
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for(i=0; i < all.length; i += 1) {
+      all[i].SourceElement().parentNode.className += ' has-jax';
+    }
+  });
+</script>
+
+<script type="text/javascript" src="//cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+<!-- End: Injected MathJax -->
+<!-- hexo-inject:end -->
+  
+
+
+  
+
+  
+
+</body>
+</html>

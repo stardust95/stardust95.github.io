@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-CN">
+<head><meta name="generator" content="Hexo 3.8.0">
+  <!-- hexo-inject:begin --><!-- hexo-inject:end --><meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css">
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css">
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="Storage,CDP,Storage Architecture,">
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="paper原文地址:https://www.research.ibm.com/haifa/projects/storage/cdp/papers/cdp_arch.pdf 概述持续数据保护(Continuous Data Protection, CDP)是一种新的存储技术，主要思想是将设备的写入记录不间断地捕获保存下来，以便后续可以将存储设备的状态回滚到过去的任意时间点。通常只会保存一段时间内的写">
+<meta name="keywords" content="Storage,CDP,Storage Architecture">
+<meta property="og:type" content="article">
+<meta property="og:title" content="&lt;基于存储控制器的CDP架构&gt;论文学习笔记">
+<meta property="og:url" content="https://stardust-blog.cn/笔记/Architectures-for-Controller-Based-CDP-论文学习笔记/index.html">
+<meta property="og:site_name" content="Stardust&#39;s Blog">
+<meta property="og:description" content="paper原文地址:https://www.research.ibm.com/haifa/projects/storage/cdp/papers/cdp_arch.pdf 概述持续数据保护(Continuous Data Protection, CDP)是一种新的存储技术，主要思想是将设备的写入记录不间断地捕获保存下来，以便后续可以将存储设备的状态回滚到过去的任意时间点。通常只会保存一段时间内的写">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="https://stardust-blog.cn/笔记/Architectures-for-Controller-Based-CDP-论文学习笔记/Figure1.png">
+<meta property="og:image" content="https://stardust-blog.cn/笔记/Architectures-for-Controller-Based-CDP-论文学习笔记/Figure2.png">
+<meta property="og:image" content="https://stardust-blog.cn/笔记/Architectures-for-Controller-Based-CDP-论文学习笔记/Figure3.png">
+<meta property="og:image" content="https://stardust-blog.cn/笔记/Architectures-for-Controller-Based-CDP-论文学习笔记/Figure4.png">
+<meta property="og:image" content="https://stardust-blog.cn/笔记/Architectures-for-Controller-Based-CDP-论文学习笔记/Figure5.png">
+<meta property="og:image" content="https://stardust-blog.cn/笔记/Architectures-for-Controller-Based-CDP-论文学习笔记/Figure6.png">
+<meta property="og:updated_time" content="2019-01-31T02:23:26.846Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="&lt;基于存储控制器的CDP架构&gt;论文学习笔记">
+<meta name="twitter:description" content="paper原文地址:https://www.research.ibm.com/haifa/projects/storage/cdp/papers/cdp_arch.pdf 概述持续数据保护(Continuous Data Protection, CDP)是一种新的存储技术，主要思想是将设备的写入记录不间断地捕获保存下来，以便后续可以将存储设备的状态回滚到过去的任意时间点。通常只会保存一段时间内的写">
+<meta name="twitter:image" content="https://stardust-blog.cn/笔记/Architectures-for-Controller-Based-CDP-论文学习笔记/Figure1.png">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="https://stardust-blog.cn/笔记/Architectures-for-Controller-Based-CDP-论文学习笔记/">
+
+
+
+
+
+  <title><基于存储控制器的cdp架构>论文学习笔记 | Stardust's Blog</基于存储控制器的cdp架构></title><!-- hexo-inject:begin --><!-- hexo-inject:end -->
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope="" itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <!-- hexo-inject:begin --><!-- hexo-inject:end --><div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope="" itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Stardust's Blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">Live in thinking</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br>
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br>
+            
+            Archives
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://stardust-blog.cn/笔记/Architectures-for-Controller-Based-CDP-论文学习笔记/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Stardust">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Stardust's Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline"><基于存储控制器的cdp架构>论文学习笔记</基于存储控制器的cdp架构></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2018-03-01T15:36:49+08:00">
+                2018-03-01
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/笔记/" itemprop="url" rel="index">
+                    <span itemprop="name">笔记</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>paper原文地址:<br><a href="https://www.research.ibm.com/haifa/projects/storage/cdp/papers/cdp_arch.pdf" target="_blank" rel="noopener">https://www.research.ibm.com/haifa/projects/storage/cdp/papers/cdp_arch.pdf</a></p>
+<h1 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h1><p>持续数据保护(Continuous Data Protection, CDP)是一种新的存储技术，主要思想是将设备的写入记录不间断地捕获保存下来，以便后续可以将存储设备的状态回滚到过去的任意时间点。通常只会保存一段时间内的写记录，这个时间窗称为CDP window。</p>
+<p>CDP可以在文件系统、逻辑卷管理器(LVM)、SAN设备、SAN交换机或块设备控制器(Block Storage Controller)中实现。本文主要关注在块设备控制器上的实现。</p>
+<p>时间点快照(可写)和远程备份等高级特性被引入了存储控制器中后，使得逻辑分卷与物理分卷的概念有了更显著的区别。此外，日志结构的文件系统，以及日志结构的阵列（在控制器层面实现的一个类似概念）的提出，将逻辑上随机的写请求转换为了物理上连续的请求，提高了文件系统、控制器的写性能。随着这个趋势，CDP作为又一个技术被提出，首次引入了时间这个维度。本文主要讨论一些相关性能的tradeoff。</p>
+<p>用控制器来保存主机的写记录，一般需要将写请求拷贝并分离出来。我们提出的四种基于控制器的CDP架构，其主要区别在于将写请求分离的时机不同：在控制器收到写请求时，在控制器将写请求从Cache移出时，以及在某个块被更新版本的块覆盖时。</p>
+<p>关于<strong>持续</strong>的保护(即每次写都保护)是否比稀疏粒度的保护更好，是一个长久争论的话题。有的应用场景需要CDP提供持续（每次写）的保护，称为完全CDP(True CDP)；而有些其他场景需要的保护粒度从分钟到小时不等，这称为准CDP(Near CDP)。无论哪种CDP方式都会对性能和空间有一定消耗。</p>
+<p>本文在测试性能时，主要关注在一般场景（非回滚）的写请求下提供CDP功能，即跟踪和记录块的历史版本时所引发的额外的I/O数量。之所以只关注写请求，是因为在这四种架构中有三种架构的读请求处理方式与普通磁盘都是完全相同的。回滚后短暂一段时间内的性能取决于架构如何存储CDP历史记录，但本文四种架构存储历史记录的方式相同，因此不做比较。</p>
+<h1 id="架构"><a href="#架构" class="headerlink" title="架构"></a>架构</h1><h2 id="控制器简介"><a href="#控制器简介" class="headerlink" title="控制器简介"></a>控制器简介</h2><p>现代存储控制器通常包含了复合处理器(Processor Complex)，读Cache，快写Cache，主机适配器和设备适配器，以及物理存储设备。</p>
+<p>下文中的图描述了一种包含两个节点的配置，每个节点有一个复合处理器、一个或多个主机和设备适配器，一个读Cache，一个快写Cache，且每个节点拥有一些物理存储设备的分卷（逻辑单元，LUNs）。要在一个节点上实现快写Cache，需要在把该节点的一部分Cache放在另一个节点上，用非易失存储(non violate storage, NVS)介质保存。当该节点宕机时，其分卷的所有权就转移到另一个节点上。</p>
+<p>Cache(包括内存和NVS中的)通常被划分成多个<strong>页</strong>(Page)单元，而磁盘被划分成许多<strong>块</strong>(Block)单元。页/块分别是内存/磁盘的最小空间分配单元。Cache的换入和换出通常以一个extent，即一组连续的Block为单位。在本文中讨论Case使用大小固定的extent，恒等于page的大小。对于更大的extent，下述的四种架构也可通用。</p>
+<h2 id="CDP与控制器的集成"><a href="#CDP与控制器的集成" class="headerlink" title="CDP与控制器的集成"></a>CDP与控制器的集成</h2><p>我们设想使用一种机制，将逻辑地址通过某种规则映射到物理地址。实现这种机制的方式之一，就是允许Cache调用回调函数，这样就能在Cache的换入和换出操作前后，访问一个逻辑地址到物理地址的映射（LPMap, logical to physical map）。在CDP场景下，还需要在LPMap中使用时间戳。</p>
+<p>LPMap数据结构支持以下API:</p>
+<ul>
+<li>insert: 插入一个逻辑地址-&gt;物理地址的映射，同时加上<strong>当前时间戳</strong>的标记</li>
+<li>lookup: 查询一个逻辑地址<strong>当前</strong>所对应的物理地址</li>
+<li>revert: 将整个LPMap结构回滚到过去的某个时间点</li>
+</ul>
+<p>本文后续讨论的所有架构都使用相同的LPMap结构。</p>
+<h2 id="架构设计要点"><a href="#架构设计要点" class="headerlink" title="架构设计要点"></a>架构设计要点</h2><p>设计CDP架构时有几个因素需要考虑。首先是磁盘的当前版本数据是要与历史版本数据存在一起还是分开存放。将当前版本和历史版本存放在一起，就是 <strong>Logging</strong> 架构。</p>
+<p>由于大多数场景下顺序写的性能是相当重要的，我们考虑另一种包含两个磁盘的架构，一个可直接访问的盘(directly adressible volume)用于存当前版本，还有一个隐藏的、通过映射表访问的磁盘(mappped volume)用于保存历史数据。为了保证较好的顺序读性能，将盘回滚时需要消耗较多的I/O——将每个变更过的extent都需要被从历史盘拷贝到当前盘上。虽然这些I/O可以在后台执行，但这个过程中历史盘仍然要响应读请求，会带来一定的性能下降。</p>
+<p>对于当前和历史数据分离的架构来说，一个重要因素是对I/O进行复制和分离的时机: 在写时分离则称为 <strong>SplitStream</strong> 架构，在缓存换出时分离则称为 <strong>SplitDownStream</strong> 架构，在被写覆盖时分离称为 <strong>Checkpointing</strong> 架构。这三种架构对应的分离位置分别是在缓存上、在缓存下以及在存储层中。</p>
+<p>需要注意下文的图中画出的当前和历史磁盘是位于不同的服务器节点上的，但现实中并不一定需要这么做。此外，我们图中画的CDP架构是实现在前面提到的控制器硬件上的。</p>
+<p>这里可能还需要<strong>多版本Cache</strong>的支持，也就是说Cache可以保存同一个Page的多个版本。因为用户设定的CDP保护粒度可能是每写一次的细粒度保护，意味着每次Page的写I/O都要被保存起来，不会被后续写覆盖。如果Cache无法保存一个Page的多个版本的话，可能会导致每个写I/O都会将一个Cache Page换出，对写请求的延时有影响。如何更好地实现一个多版本Cache不在本文讨论范围内。</p>
+<h2 id="Logging-架构"><a href="#Logging-架构" class="headerlink" title="Logging 架构"></a>Logging 架构</h2><img src="/笔记/Architectures-for-Controller-Based-CDP-论文学习笔记/Figure1.png">
+<blockquote>
+<p>图1：Logging 架构的写入流，每个写请求最多引发一个用户数据设备I/O。</p>
+</blockquote>
+<p>Logging 架构非常简单，对磁盘的所有写记录会存在一个对用户不可见的mapped volume里。图1展示了这种 Logging 架构的写入流。需要注意的是每个写请求最多引起一个用户数据盘I/O。如果CDP保护粒度比一个特定逻辑地址的写入率低，那么该逻辑地址的块就有可能被缓存，可以避免一次I/O。</p>
+<p>缓存的换入和换出都需要访问LPMap。这种架构比较适合写密集的场景，因为这样不仅可以避免从当前盘拷贝到历史盘所需的额外I/O，并且还可能将随机写转化为顺序写。此外，如果用合适的数据结构存储CDP历史记录，可以大大降低回滚的开销。需要注意的是，虽然在缓存得当的情况下这种架构并不总是需要额外的磁盘I/O，但是读和写都需要访问LPMap结构。更重要的是，我们讨论的这几个架构中访问LPMap的开销都是相同的。</p>
+<p>这种架构关键的缺点在于:</p>
+<ol>
+<li><strong>顺序读</strong>性能差，主要是因为难以将extent顺序地分布在磁盘上，</li>
+<li>对LPMap的访问次数太多</li>
+</ol>
+<p>第一个缺点比较难以解决，我们的简化方法是将当前版本数据与历史版本数据分离。这里考虑的是历史版本数据的顺序读性能不那么重要，因为只有在回滚后短暂一段时间窗内会访问到。</p>
+<p>另外，Logging 架构不便于对正在使用的磁盘提供CDP功能。从头开始构造LPMap结构是比较麻烦的，即便我们只是按需构造，也得用很长一段时间来回收（再使用）磁盘上原有的存储空间。</p>
+<p>所以 Logging 架构比较适用于日志输出的场景，因为这种场景下读操作只有在出错时才发生。</p>
+<h2 id="SplitStream-架构"><a href="#SplitStream-架构" class="headerlink" title="SplitStream 架构"></a>SplitStream 架构</h2><p>在Cache之上将数据复制分离的则是 SplitStream 架构。数据的一份副本发送到<strong>当前盘(current store)</strong>(直接访问)，另一份副本发送到<strong>历史盘(history store)</strong>(对用户不可见的，通过映射表访问的磁盘)</p>
+<img src="/笔记/Architectures-for-Controller-Based-CDP-论文学习笔记/Figure2.png">
+<blockquote>
+<p>图2：SplitStream 架构的写入流，写操作在Cache之上被分离，且每个写请求至多会引发两次的用户数据盘I/O。</p>
+</blockquote>
+<p>图2描述了 SplitStream 架构的写入流。需要注意的是每个写请求至多引发两次用户数据I/O，分别是到当前盘和历史盘。与 Logging 架构对比来看，获得了更好的顺序读性能，但代价是写请求引发了额外的写I/O，并且需要消耗更多的磁盘空间和Cache内存。</p>
+<p>需要注意的是，这种场景下Cache可以分别管理各个磁盘（当前盘和历史盘），因此就不需要多版本Cache的支持。在 SplitStream 架构中，Cache中可能会存在两份相同的数据，因此加大了对内存的需求。</p>
+<h2 id="SplitDownStream-架构"><a href="#SplitDownStream-架构" class="headerlink" title="SplitDownStream 架构"></a>SplitDownStream 架构</h2><p>SplitDownStream 架构与 SplitStream 唯一的不同是，它将数据的复制分离放在Cache之下，即Cache换出的时候，其他过程与 SplitStream 完全相同。这样就使得当前盘和历史盘可以共享Cache页，节省了部分内存资源。然而，由于Cache同时服务于读当前盘和读历史盘的请求，因此需要使用一个多版本的Cache来避免延时过大。</p>
+<img src="/笔记/Architectures-for-Controller-Based-CDP-论文学习笔记/Figure3.png">
+<blockquote>
+<p>图3：SplitDownStream 架构的写入流，写操作在Cache之下被分离，每个写请求至多引发两次用户数据盘I/O。</p>
+</blockquote>
+<p>图3描述了 SplitDownStream 架构的写入流。需要注意的是如果我们忽略这两种架构不同的Cache效果，SplitDownStream 在一次写请求引发的磁盘I/O数量与 SplitStream 架构完全相同。</p>
+<h2 id="Checkpointing-架构"><a href="#Checkpointing-架构" class="headerlink" title="Checkpointing 架构"></a>Checkpointing 架构</h2><img src="/笔记/Architectures-for-Controller-Based-CDP-论文学习笔记/Figure4.png">
+<blockquote>
+<p>图4：Checkpoinging 架构的写入流，旧版本的数据在被覆写前拷贝到历史盘。每个写请求引发最多三次用户数据盘I/O。</p>
+</blockquote>
+<p>与 SplitStream 和 SplitDownStream 类似，Checkpointing 架构有一个直接访问的当前盘和一个对用户隐藏的、通过映射访问的历史盘。但是在 Checkpointing 架构中，当前版本数据只会存在于当前盘，历史版本数据只会存在于历史盘。在缓存被换出，覆写当前盘上的某个 extent 之前，首先检查该 extent 是否需要被保存在历史盘中（取决于CDP的保护粒度，如果是“每写一次”的话则所有版本都需要被保存，如果是稀疏粒度的话则每隔若干个版本需要被保存）。</p>
+<p>总之如果需要的话，该 extent 就要先被拷贝到历史盘上。注意这个操作可能需要两次I/O：将 extent 拷贝到历史盘的Cache；将历史盘的Cache换出到历史盘。因此一次写请求总共需要至多3次I/O。</p>
+<p>如果这里不使用NVS作为Cache，那么这三次I/O都需要是同步I/O。因此使用一个支持多版本的Cache对降低写延时来说是非常重要的。</p>
+<p>每个写请求可能引发的三次I/O中，有两次是和Cache无关，完全由CDP保护粒度决定的（即拷贝当前盘 extent 到历史盘）。其余的一次I/O是可以根据CDP保护粒度，通过Cache避免的。</p>
+<h1 id="分析"><a href="#分析" class="headerlink" title="分析"></a>分析</h1><h2 id="初步分析"><a href="#初步分析" class="headerlink" title="初步分析"></a>初步分析</h2><p>将时间维度划分成一系列固定长度为$g$的<strong>保护粒度时间窗(granularity windows)</strong>。基本的目标就是在保存每个时间窗中的最后一次写记录。</p>
+<p>对某个特定逻辑地址，如果一次写操作是当前时间窗内该地址上的最后一次写，则这次写操作需要被保存(retain)。用$r$表示要保存的写操作比例（$0 ≤ r ≤ 1$），例如“每写一次“的保护粒度下$r$ = 1；随着保护粒度的增大，$r$逐渐趋于0。</p>
+<p>对于一个确定的保护粒度，增加写操作之间的时间距离(temporal distances)会降低一次写操作被保存的几率。对于一个给定的写入流，写入流的时间距离分布是一个函数$T$，给定一个时间距离$t$, $T(t)$表示所有写操作中，与其后一次的写时间距离小于$t$的比例，因此 $0 ≤ T(t) ≤ 1$。</p>
+<p>接下来考虑写缓存，用$c$表示所有写入Cache的记录在被其他写操作覆写之前，就被从Cache上换出的比例。$c = 1$ 表示Cache没有<em>吸收</em>任何写记录，而$c = 0$ 表示所有的写操作都被<em>吸收</em>了。可以发现 $1-c$ 就是写Cache的命中率，因此$c$取决于写Cache的大小和替换算法，以及写入流的局部性（即写操作目标地址的分布）。</p>
+<p>我们定义一次写操作是被<strong>引发(incurred)</strong>的，当且仅当它被保存，或在Cache中被覆写前换出，或两者都有。在 Logging 架构中，引发的写操作就是一次设备I/O。我们用$d$表示<strong>在 Logging 架构中</strong>写操作被引发的比例($0 ≤ d ≤ 1$)。请注意通常情况下 $d ≠ r + c - rc$ 因为被从Cache中换出和被保存并不是互斥关系。</p>
+<h2 id="写请求引发的设备I-O"><a href="#写请求引发的设备I-O" class="headerlink" title="写请求引发的设备I/O"></a>写请求引发的设备I/O</h2><img src="/笔记/Architectures-for-Controller-Based-CDP-论文学习笔记/Figure5.png">
+<blockquote>
+<p>图5：在不同架构下，用$r, c, d$表示的每个写请求引发的设备I/O个数，并给出了Checkpointing架构和SplitStream架构之间的理论临界点。</p>
+</blockquote>
+<p>对于给定的$r, c$和$d$，图5总结了各个架构下每个写请求引发的I/O个数，需要注意的是$r$和$d$都取决于保护粒度$g$。</p>
+<p>如果我们的写入流每隔0.5秒有一个请求，那么对于一个”每秒一次”的保护粒度下，$r = 0.5$。假设不用Cache，那么在 Checkpointing 架构下，每个写请求的期望代价就是 $rp + (1-r)p’$，其中$p$是一次被保存的写操作代价，$p’$是一次不保存的写代价。<br>因为 Checkpointing 架构中$p$和$p’$分别是3和1，代入公式后得到的期望代价是$3r + (1 − r) = 2r + 1$，如上表中所示。</p>
+<p>而对于 SplitStream 和 SplitDownStream 架构，期望代价总是2。这里的临界点在于$r = 0.5$，一个更大的$r$值对 Split(Down)Stream 架构更合适，而更小的$r$对 Checkpointing 架构更好。$r$的值取决于（写入流的）时间局部性与（用户设置的）CDP保护粒度的关系。</p>
+<p>从图5的表中可以发现，Split(Down)Stream 比 Checkpointing 能够更好地利用Cache。Checkpointing可以用Cache缓存无需保存（non retained）的当前盘I/O，但 Split(Down)Stream 可以用Cache做得更好。假设有一个无限大的Cache，SplitStream 可以把每个写请求的I/O数降到$r$。这里 Checkpointing 每个写请求的期望代价是$3r$，因为所有被保存的写操作都要通过当前盘到达历史盘。注意到这里 SplitDownStream 与 SplitStream 有些微不同：增大Cache的大小会减小$c$，SplitStream 架构能比 SplitDownStream 架构从中获得更多的提升。</p>
+<p>与普通磁盘($r = 0$)不同，随着$r$增大，增加Cache大小带来的增益越来越有限。例如$r = 1$、保护粒度是”每写一次“的极端情况下，Checkpointing 架构的每个写请求都需要三次I/O的代价，无论Cache大小；对于 SplitDownStream 这个代价是两次。这个场景下两种架构间没有临界点，SplitDownStream 架构总是比较有优势。而对于无CDP支持的普通磁盘($r = 0$)，Checkpointing 架构的代价是 $c$，而 Split(Down)Stream 的代价是$2c$，两种架构的临界点是$c = 0$。也就是说在$c &gt; 0$的情况下，Checkpointing 都要比 Split(Down)Stream 要好，原因是 Split(Down)Stream 总需要复制和分离所有写操作，Cache被换出的时候总比普通磁盘代价大。而 Checkpointing 在这种情况下表现同一个普通磁盘。</p>
+<p>通常情况下，Checkpointing 和 SplitStream 架构的临界点都是 $c = 2r$，当$c &gt; 2r$时 Checkpointing 更有优势。由于$r &gt; 0.5$时不可能满足$ c &gt; 2r$，因此这种场景下 Split(Down)Stream 总是优于 Checkpointing。</p>
+<h2 id="空间开销"><a href="#空间开销" class="headerlink" title="空间开销"></a>空间开销</h2><img src="/笔记/Architectures-for-Controller-Based-CDP-论文学习笔记/Figure6.png">
+<blockquote>
+<p>图6：在不同架构下，用$r, w, a$和$f$表示的空间开销，其中$w$是写请求总数，$r$是被保存的写请求数，$a$是可寻址的存储空间大小，$f$是实际被寻址的存储空间大小。</p>
+</blockquote>
+<p>要保存的写操作比例$r$同时也决定了需要用来保存CDP历史记录的空间，因此写操作引发的I/O数目与CDP占用空间有一定联系。图6总结了这几种架构的空间开销情况。$w$表示在给定CDP时间窗内的写操作数，$a$表示可寻址的存储空间大小，$f$表示该CDP时间窗内实际访问到的存储空间大小。</p>
+<p>由于 Logging 架构空间利用率高，它的空间开销比普通磁盘还要小，而 Split(Down)Stream 架构的存储开销等同于一个普通磁盘和一个 Logging 磁盘之和。由于 Checkpointing 将当前版本数据和历史版本数据分开保存，也节省了一定的存储空间( $f$ )。</p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Storage/" rel="tag"># Storage</a>
+          
+            <a href="/tags/CDP/" rel="tag"># CDP</a>
+          
+            <a href="/tags/Storage-Architecture/" rel="tag"># Storage Architecture</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/翻译/6-824分布式课程讲稿翻译-Lab2/" rel="next" title="6.824分布式课程讲稿翻译-Lab2">
+                <i class="fa fa-chevron-left"></i> 6.824分布式课程讲稿翻译-Lab2
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/笔记/iostat学习笔记/" rel="prev" title="Linux通用块层及iostat学习笔记">
+                Linux通用块层及iostat学习笔记 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">Stardust</p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">17</span>
+                  <span class="site-state-item-name">posts</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                
+                  <span class="site-state-item-count">2</span>
+                  <span class="site-state-item-name">categories</span>
+                
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                
+                  <span class="site-state-item-count">29</span>
+                  <span class="site-state-item-name">tags</span>
+                
+              </div>
+            
+
+          </nav>
+
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#概述"><span class="nav-number">1.</span> <span class="nav-text">概述</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#架构"><span class="nav-number">2.</span> <span class="nav-text">架构</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#控制器简介"><span class="nav-number">2.1.</span> <span class="nav-text">控制器简介</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#CDP与控制器的集成"><span class="nav-number">2.2.</span> <span class="nav-text">CDP与控制器的集成</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#架构设计要点"><span class="nav-number">2.3.</span> <span class="nav-text">架构设计要点</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Logging-架构"><span class="nav-number">2.4.</span> <span class="nav-text">Logging 架构</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#SplitStream-架构"><span class="nav-number">2.5.</span> <span class="nav-text">SplitStream 架构</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#SplitDownStream-架构"><span class="nav-number">2.6.</span> <span class="nav-text">SplitDownStream 架构</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Checkpointing-架构"><span class="nav-number">2.7.</span> <span class="nav-text">Checkpointing 架构</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#分析"><span class="nav-number">3.</span> <span class="nav-text">分析</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#初步分析"><span class="nav-number">3.1.</span> <span class="nav-text">初步分析</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#写请求引发的设备I-O"><span class="nav-number">3.2.</span> <span class="nav-text">写请求引发的设备I/O</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#空间开销"><span class="nav-number">3.3.</span> <span class="nav-text">空间开销</span></a></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Stardust</span>
+
+  
+</div>
+
+
+  <div class="powered-by">Powered by <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a></div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">Theme &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Muse</a> v5.1.4</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+  
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+          processEscapes: true,
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+        }
+      });
+    </script>
+
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Queue(function() {
+        var all = MathJax.Hub.getAllJax(), i;
+        for (i=0; i < all.length; i += 1) {
+          all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+      });
+    </script>
+    <script type="text/javascript" src="//cdn.bootcss.com/mathjax/2.7.1/latest.js?config=TeX-AMS-MML_HTMLorMML"></script><!-- hexo-inject:begin --><!-- Begin: Injected MathJax -->
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config("");
+</script>
+
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for(i=0; i < all.length; i += 1) {
+      all[i].SourceElement().parentNode.className += ' has-jax';
+    }
+  });
+</script>
+
+<script type="text/javascript" src="//cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+<!-- End: Injected MathJax -->
+<!-- hexo-inject:end -->
+  
+
+
+  
+
+  
+
+</body>
+</html>

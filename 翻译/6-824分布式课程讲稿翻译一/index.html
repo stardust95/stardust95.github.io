@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-CN">
+<head><meta name="generator" content="Hexo 3.8.0">
+  <!-- hexo-inject:begin --><!-- hexo-inject:end --><meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css">
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css">
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="Distributed System,MIT 6.824,">
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="MIT 6.824是一门非常经典的分布式系统课程, 通过对经典的Google三大论文的阅读体会, 尝试几个工程量比较大且颇有挑战的Lab, 最终实现一个分布式KV存储系统, 能够让学习者对分布式系统这个方向有入门性的了解.  由于这门课程只给出了类似思维导图的Notes, 并不是完整讲稿, 因此翻译时有些上下文不通顺的地方, 暂时按个人理解来翻译, 并在括号内注明原文. 如果有些部分还是难理解的话">
+<meta name="keywords" content="Distributed System,MIT 6.824">
+<meta property="og:type" content="article">
+<meta property="og:title" content="MIT 6.824分布式课程讲稿翻译 - Lec 1">
+<meta property="og:url" content="https://stardust-blog.cn/翻译/6-824分布式课程讲稿翻译一/index.html">
+<meta property="og:site_name" content="Stardust&#39;s Blog">
+<meta property="og:description" content="MIT 6.824是一门非常经典的分布式系统课程, 通过对经典的Google三大论文的阅读体会, 尝试几个工程量比较大且颇有挑战的Lab, 最终实现一个分布式KV存储系统, 能够让学习者对分布式系统这个方向有入门性的了解.  由于这门课程只给出了类似思维导图的Notes, 并不是完整讲稿, 因此翻译时有些上下文不通顺的地方, 暂时按个人理解来翻译, 并在括号内注明原文. 如果有些部分还是难理解的话">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="https://stardust-blog.cn/翻译/6-824分布式课程讲稿翻译一/Figure1.png">
+<meta property="og:updated_time" content="2018-12-21T15:54:44.079Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="MIT 6.824分布式课程讲稿翻译 - Lec 1">
+<meta name="twitter:description" content="MIT 6.824是一门非常经典的分布式系统课程, 通过对经典的Google三大论文的阅读体会, 尝试几个工程量比较大且颇有挑战的Lab, 最终实现一个分布式KV存储系统, 能够让学习者对分布式系统这个方向有入门性的了解.  由于这门课程只给出了类似思维导图的Notes, 并不是完整讲稿, 因此翻译时有些上下文不通顺的地方, 暂时按个人理解来翻译, 并在括号内注明原文. 如果有些部分还是难理解的话">
+<meta name="twitter:image" content="https://stardust-blog.cn/翻译/6-824分布式课程讲稿翻译一/Figure1.png">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="https://stardust-blog.cn/翻译/6-824分布式课程讲稿翻译一/">
+
+
+
+
+
+  <title>MIT 6.824分布式课程讲稿翻译 - Lec 1 | Stardust's Blog</title><!-- hexo-inject:begin --><!-- hexo-inject:end -->
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope="" itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <!-- hexo-inject:begin --><!-- hexo-inject:end --><div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope="" itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Stardust's Blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">Live in thinking</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br>
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br>
+            
+            Archives
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://stardust-blog.cn/翻译/6-824分布式课程讲稿翻译一/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Stardust">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Stardust's Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">MIT 6.824分布式课程讲稿翻译 - Lec 1</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2017-12-04T16:28:37+08:00">
+                2017-12-04
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/翻译/" itemprop="url" rel="index">
+                    <span itemprop="name">翻译</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>MIT 6.824是一门非常经典的分布式系统课程, 通过对经典的Google三大论文的阅读体会, 尝试几个工程量比较大且颇有挑战的Lab, 最终实现一个分布式KV存储系统, 能够让学习者对分布式系统这个方向有入门性的了解. </p>
+<p>由于这门课程只给出了类似思维导图的Notes, 并不是完整讲稿, 因此翻译时有些上下文不通顺的地方, 暂时按个人理解来翻译, 并在括号内注明原文. 如果有些部分还是难理解的话建议参考原文.</p>
+<p>原文地址: <a href="https://pdos.csail.mit.edu/6.824/notes/l01.txt" target="_blank" rel="noopener">6.824 2017 Lecture 1: Introduction</a></p>
+<h2 id="导论"><a href="#导论" class="headerlink" title="导论"></a>导论</h2><h3 id="什么是分布式系统"><a href="#什么是分布式系统" class="headerlink" title="什么是分布式系统?"></a>什么是分布式系统?</h3><ul>
+<li>多个主机协同工作</li>
+<li>大型数据库, P2P文件共享, MapReduce, DNS等等</li>
+<li>大部分关键的基础架构都是分布式的!</li>
+</ul>
+<h3 id="为什么需要分布式"><a href="#为什么需要分布式" class="headerlink" title="为什么需要分布式?"></a>为什么需要分布式?</h3><ul>
+<li>用于连接物理上相互分离的实体</li>
+<li>通过隔离(isolation)保证安全性</li>
+<li>通过冗余备份实现容错(fault tolerance)</li>
+<li>通过并行的CPU/内存/磁盘/网络硬件提升吞吐量(throughput)</li>
+</ul>
+<p>然而带来的问题包括:</p>
+<ul>
+<li>复杂性(complex): 有多个并发的部分</li>
+<li>需要处理局部故障(partial failure)的情况</li>
+<li>难以实现的性能潜力(performance potential)</li>
+</ul>
+<h3 id="为什么要上这门课"><a href="#为什么要上这门课" class="headerlink" title="为什么要上这门课?"></a>为什么要上这门课?</h3><ul>
+<li>有趣: 困难的问题, 有力的解决方案</li>
+<li>被运用在真实系统中: 由大型Web网站的发展(the rise of big Web sites)趋势导致</li>
+<li>活跃的研究领域(active research area): 许多成果以及更多等待解决的问题</li>
+<li>动手实践: 你将会在这门课的实验中构建不同的系统</li>
+</ul>
+<h3 id="课程结构"><a href="#课程结构" class="headerlink" title="课程结构"></a>课程结构</h3><p><a href="http://pdos.csail.mit.edu/6.824" target="_blank" rel="noopener">http://pdos.csail.mit.edu/6.824</a></p>
+<h3 id="课程相关人员"><a href="#课程相关人员" class="headerlink" title="课程相关人员"></a>课程相关人员</h3><p>Robert Morris, 讲师<br>Frans Kaashoek, 讲师<br>Lara Araujo, 助教<br>Anish Athalye, 助教<br>Srivatsa Bhat, 助教<br>Daniel Ziegler, 助教</p>
+<h2 id="课程组成"><a href="#课程组成" class="headerlink" title="课程组成"></a>课程组成</h2><h3 id="授课"><a href="#授课" class="headerlink" title="授课"></a>授课</h3><ul>
+<li>重要思想</li>
+<li>论文讨论</li>
+<li>实验</li>
+</ul>
+<h3 id="阅读"><a href="#阅读" class="headerlink" title="阅读"></a>阅读</h3><p>主要是阅读研究论文(部分是旧的, 部分新的). 这些论文都阐述了一些关键的思想或是重要的细节, 后续课程重点也会围绕这些论文.<br>请在课前完成阅读! 每个论文都有一个简单的问题让你回答, 请务必将阅读时遇到的问题和答案在课前晚上10点之前发给我们. </p>
+<h3 id="两次考试"><a href="#两次考试" class="headerlink" title="两次考试"></a>两次考试</h3><p>课上的期中考试, 考试周的期末考试</p>
+<h3 id="实验"><a href="#实验" class="headerlink" title="实验"></a>实验</h3><ul>
+<li>实验目标:<ul>
+<li>加深对某些重要技术的理解</li>
+<li>锻炼编写分布式程序(distributed programming)的能力</li>
+<li>第一个实验期限设在从周五开始的一周之内</li>
+<li>后续一段时间每周会有一个新实验</li>
+</ul>
+</li>
+<li>实验内容:<ul>
+<li>实验一: MapReduce</li>
+<li>实验二: 使用Raft实现冗余容错(replication for fault-tolerance using Raft)</li>
+<li>实验三: 容错的KV存储(fault-tolerant key/value store)</li>
+<li>实验四: 数据分片的KV存储(sharded key/value store)</li>
+</ul>
+</li>
+</ul>
+<h3 id="期末项目-可选"><a href="#期末项目-可选" class="headerlink" title="期末项目(可选)"></a>期末项目(可选)</h3><p>你也可以选择做一个期末项目, 2~3个人组队, 用于代替实验四, 请自选题目并告知我们.</p>
+<p>实验的成绩取决于你的程序通过了多少个我们规定的测试项, 因此你能够清楚地知道自己做得怎么样.<br>如果只是有时通过有时通不过, 我们检查运行的时候也会有可能无法通过. </p>
+<p>实验项目的调试可能会很费时, 因此建议大家尽早开始, 平时也可以来助教办公室或者在Piazza上提问</p>
+<h2 id="主要论题"><a href="#主要论题" class="headerlink" title="主要论题"></a>主要论题</h2><p>这是一门关于应用底层基础架构的课程, 需要去考虑如何抽象以便对应用层隐藏分布式系统的复杂性, 主要包括三类抽象:</p>
+<ul>
+<li>存储(Storage)</li>
+<li>通信(Communication)</li>
+<li>计算(Computation)</li>
+</ul>
+<p>下面的这些论题后续可能会经常提到:</p>
+<h3 id="论题-实现-Implementation"><a href="#论题-实现-Implementation" class="headerlink" title="论题: 实现(Implementation)"></a>论题: 实现(Implementation)</h3><p>包括RPC, 线程, 并发控制(concurrency control)</p>
+<h3 id="论题-性能-Performance"><a href="#论题-性能-Performance" class="headerlink" title="论题: 性能(Performance)"></a>论题: 性能(Performance)</h3><p>目标: 可伸缩的吞吐量(scalable throughput)<br>通过并行的CPU, 磁盘, 网络, 使N倍的服务器增长带来N倍总吞吐量的提升. 这样提升负载只需要购置更多的服务器.</p>
+<p>然而随着N的增大, 扩容将越来越困难:</p>
+<ul>
+<li>负载的不均衡, straggler问题; </li>
+<li>非并行化的代码(如初始化, 交互相关的代码)</li>
+<li>共享资源(如网络)带来的瓶颈</li>
+</ul>
+<h3 id="论题-容错-Fault-Tolerance"><a href="#论题-容错-Fault-Tolerance" class="headerlink" title="论题: 容错(Fault Tolerance)"></a>论题: 容错(Fault Tolerance)</h3><p>成千上万的服务器, 复杂的网络架构, 总会导致某些地方出错, 我们希望把这些错误对应用层隐藏起来.<br>一般希望达到的是:</p>
+<ul>
+<li>可用性(Availability): 在出错时应用仍然能访问数据</li>
+<li>持久性(Durability): 错误被修复之后, 应用的数据能够恢复重用</li>
+</ul>
+<p>一个重要思想: 使用冗余的服务器(replicated servers). 当一台服务器宕机, 客户端可以接着使用其他的服务器.</p>
+<h3 id="论题-一致性-Consistency"><a href="#论题-一致性-Consistency" class="headerlink" title="论题: 一致性(Consistency)"></a>论题: 一致性(Consistency)</h3><p>通常意义上, 基础架构需要提供定义良好的行为(well-defined behavior). 例如”Get(k)返回最近一次的Put(k, v)”.<br>但是一个足够好的实现是很困难的:</p>
+<ul>
+<li>备机难以与主机保持一致</li>
+<li>在包含多个步骤的更新过程中(multi-step update)客户端可能会宕机</li>
+<li>服务器可能会在奇怪的时候宕机, 例如执行完任务(Task)和发送回复之间(after executing but before replying)</li>
+<li>网络环境可能会使服务器看上去宕机, 导致”脑裂”</li>
+</ul>
+<p>一致性与性能往往是相互对立的:</p>
+<ul>
+<li>一致性要求通信, 比如<em>获取最近一次的Put()</em>.</li>
+<li>强一致性(Strong consistency)往往会降低系统性能.</li>
+<li>高性能的系统通常会要求应用是弱一致性(weak consistency)的.</li>
+<li>在这个问题上人们已经尝试了许多不同的设计方式(design points).</li>
+</ul>
+<h2 id="案例研究-MapReduce"><a href="#案例研究-MapReduce" class="headerlink" title="案例研究: MapReduce"></a>案例研究: MapReduce</h2><h3 id="使用场景"><a href="#使用场景" class="headerlink" title="使用场景"></a>使用场景</h3><p>数TB的数据集需要数小时的计算工作时, 例如在数千台服务器上进行爬取网页的拓扑图结构分析, 且缺少一些分布式系统专家来开发, 使得分布式将带来极大的困难.</p>
+<h3 id="主要目标"><a href="#主要目标" class="headerlink" title="主要目标"></a>主要目标</h3><p>要让普通的开发者也能轻松地分割数据, 分别在多个服务器上以较高的效率处理<br>开发者只需要定义Map和Reduce函数, 编写普通的的串行代码(sequential code), 降低分布式编程的难度.<br>MapReduce能够在数千台机器上运行这些函数, 处理大量的输入数据, 并将分布式的细节隐藏起来.</p>
+<h3 id="MapReduce抽象图"><a href="#MapReduce抽象图" class="headerlink" title="MapReduce抽象图"></a>MapReduce抽象图</h3><p>输入被分割成$M$个文件. </p>
+<pre><code>Input1 -&gt; Map -&gt; a,1 b,1 c,1
+Input2 -&gt; Map -&gt;     b,1
+Input3 -&gt; Map -&gt; a,1     c,1
+                  |   |   |
+                      |   -&gt; Reduce -&gt; c,2
+                      -----&gt; Reduce -&gt; b,2
+</code></pre><p>MapReduce通过对每个输入文件调用Map(), 输出中间数据(intermidiate data)—键值对<code>&lt;k2, v2&gt;</code>的集合. 每个Map()调用称为一个Task<br>之后MapReduce对给定的每个k2, 统计其所有的中间数据并传给Reduce函数<br>最终从Reduce输出的是键值对<code>&lt;k2, v3&gt;</code>的集合, 存储在$R$个输出文件中</p>
+<h3 id="示例-统计字数-word-count"><a href="#示例-统计字数-word-count" class="headerlink" title="示例: 统计字数(word count)"></a>示例: 统计字数(word count)</h3><pre><code>input is thousands of text files
+Map(k, v)
+  split v into words
+  for each word w
+    emit(w, &quot;1&quot;)
+Reduce(k, v)
+  emit(len(v))
+</code></pre><h3 id="MapReduce隐藏了许多繁琐的细节"><a href="#MapReduce隐藏了许多繁琐的细节" class="headerlink" title="MapReduce隐藏了许多繁琐的细节"></a>MapReduce隐藏了许多繁琐的细节</h3><ul>
+<li>在服务器上启动程序(starting s/w on servers)</li>
+<li>跟踪哪些Task被完成(tracking which tasks are done)</li>
+<li>数据迁移(data movement)</li>
+<li>错误恢复(recovering from failures)</li>
+</ul>
+<h3 id="MapReduce能够方便地扩容"><a href="#MapReduce能够方便地扩容" class="headerlink" title="MapReduce能够方便地扩容"></a>MapReduce能够方便地扩容</h3><ul>
+<li>$N$台服务器能够得到$N$倍的吞吐量增长</li>
+<li>假设$ M, R &gt;= N$(例如大量的输入文件和Key值)</li>
+<li>由于Map()函数相互无交集, 可以并行运行</li>
+<li>Reduce()同理<br>因此你能够通过更多的服务器得到更大的吞吐量, 而不是去针对每个应用进行特定的并行化, 计算机比程序员便宜得多!</li>
+</ul>
+<h3 id="什么因素可能会限制性能"><a href="#什么因素可能会限制性能" class="headerlink" title="什么因素可能会限制性能?"></a>什么因素可能会限制性能?</h3><p>性能使我们需要优化的点, 所以要多加考虑<br>CPU? 内存? 磁盘? 网络?<br>2004年时(MapReduce论文的)作者们被跨分区网络带宽所限制. 要知道在Map-&gt;Reduce的过程中, 所有数据都要走网络.<br>论文当时使用的根路由器速度在100~200Gb/s, 1800台机器, 因此每台机器平均使用55Mb/s, 速度非常慢, 比硬盘和RAM慢得多. 因此他们要考虑的是如何最小化网络上的数据传输(当然今天的数据中心要快得多).</p>
+<h3 id="更多细节"><a href="#更多细节" class="headerlink" title="更多细节"></a>更多细节</h3><img src="/翻译/6-824分布式课程讲稿翻译一/Figure1.png">
+<ul>
+<li>Master: 向worker分发Task. 要记住这里中间输出的是$M$个Map Task, $R$个Reduce Task.</li>
+<li>输入存放在GFS中, 每个Map输入文件存3份用于备份</li>
+<li>Task数远大于worker数</li>
+<li>master每次给一个worker分配一个Task, 完成后再分配下一个</li>
+<li>Map worker将(Map和Reduce)中间的Key值哈希映射成$R$份到本地磁盘上</li>
+<li>等所有Map调用执行完毕后才开始执行Reduce调用</li>
+<li>master会让Reducer从Map worker获取已分片的中间数据</li>
+<li>Reduce worker将最终的输出数据写入GFS(每个Reduce task输出一个文件)</li>
+</ul>
+<h3 id="这些细节设计如何提升在慢速网络环境中的效率"><a href="#这些细节设计如何提升在慢速网络环境中的效率" class="headerlink" title="这些细节设计如何提升在慢速网络环境中的效率"></a>这些细节设计如何提升在慢速网络环境中的效率</h3><ul>
+<li>Map的输入时从本地磁盘上的GFS备份(GFS replica)读入, 而不是通过网络读入的.</li>
+<li>中间数据(Intermediate data)只在网络上传输一次, Map worker写入到本地磁盘而非GFS中</li>
+<li>中间数据被划分成若干个包含许多Key的文件, 在大型网络(Big network)中传输效率更快</li>
+</ul>
+<h3 id="如何较好地实现负载均衡"><a href="#如何较好地实现负载均衡" class="headerlink" title="如何较好地实现负载均衡"></a>如何较好地实现负载均衡</h3><p>这对于扩展非常关键——因为N-1个服务器等待1个服务器完成是严重影响效率的<br>但某些Task可能会比其他的花费更长的时间.<br>解决方案: 使Task的数量远比worker多, 这样的好处是:</p>
+<ul>
+<li>Master就能把新的任务分派给那些完成了先前任务的Worker. </li>
+<li>Task不会太大, 以至于占据了Worker的所有时间</li>
+<li>快的服务器比慢的服务器可以做更多的工作, 保证它们大约在同一时刻结束工作. </li>
+</ul>
+<h3 id="关于容错-Fault-Tolerance"><a href="#关于容错-Fault-Tolerance" class="headerlink" title="关于容错(Fault Tolerance)"></a>关于容错(Fault Tolerance)</h3><p>容错就是说如果一台服务器在执行一个MR(MapReduce)任务的过程中宕机了怎么办?<br>故障的隐藏在编程中是一个很值得研究的话题(huge part of programming)<br>为什么不把整个任务重新开始?<br>MapReduce仅在Map()或Reduce()失败时才重新执行. 因此MR需要这两个函数都是<a href="https://en.wikipedia.org/wiki/Pure_function" target="_blank" rel="noopener">纯函数(Pure function)</a>, 也就是说:</p>
+<ul>
+<li>每次调用都是无状态的</li>
+<li>除了MR输入输出文件之外, 不会读写其他文件</li>
+<li>Task与Task之间没有隐藏的数据交互<br>这样才能保证重新执行一定能得到同样的输出.<br>需要提供纯函数是MR相对于其他并行编程模式的一个主要限制, 但这正是保证MR简洁性的关键.</li>
+</ul>
+<h3 id="Worker宕机恢复的细节"><a href="#Worker宕机恢复的细节" class="headerlink" title="Worker宕机恢复的细节"></a>Worker宕机恢复的细节</h3><p>Map Worker宕机后:</p>
+<ul>
+<li>Master发现Worker不再响应Ping包</li>
+<li>宕机的Worker会缺少相应的中间文件(丢失的中间文件可能会被每个Reduce Task需要). </li>
+<li>Master重新执行, 向输入文件在GFS上的其他副本(服务器)分发任务.</li>
+<li>某些Reduce Worker可能已经读了故障的Map Worker输出的中间数据, 这里需要取决于Map()函数的功能和定义. 如果Reduce已经读取了所有中间数据那么Master不需要重新执行Map(), 接着Reduce Worker会宕机从而使得失败的Map()强制重新执行. </li>
+</ul>
+<p>Reduce Worker宕机后:</p>
+<ul>
+<li>那些已经完成的Task是OK的, 输出和冗余备份都已经写入保存到GFS中了.</li>
+<li>对于没有完成的Task, Master会在其他Worker重启这些Task.</li>
+</ul>
+<p>Reduce Worker正在输出结果中途宕机:</p>
+<ul>
+<li>GFS有原子性的重命名操作(atomic rename)来保证输出只有全部完成, 输出文件才可见. 因此Master在其他地方重新执行这个Reduce Task是安全的.</li>
+</ul>
+<h3 id="其他错误-问题"><a href="#其他错误-问题" class="headerlink" title="其他错误/问题"></a>其他错误/问题</h3><ul>
+<li>如果Master给两个Worker分配了同一个Map Task?<br>可能是Master认为其中一个Worker已经挂了. 它会只把一个Worker告诉后续的Reduce Worker.</li>
+<li>如果Master给两个Worker分配了同一个Reduce Task?<br>他们会试图在GFS上写入同一个输出文件!<br>但GFS提供的原子性的重命名操作</li>
+<li>如果一个Worker非常慢 - 是一个”掉队者(straggler)”?<br>可能是因为薄弱的硬件条件.<br>Master会拷贝最后剩下的少数Task到其他Worker上执行</li>
+<li>如果一个Worker由于软件或硬件原因计算出错误的输出?<br>太糟糕了! MapReduce假设CPU和软件都是”遇错即停”的</li>
+<li>如果Master宕机了?</li>
+</ul>
+<h3 id="什么样的应用不适合用MapReduce运行"><a href="#什么样的应用不适合用MapReduce运行" class="headerlink" title="什么样的应用不适合用MapReduce运行?"></a>什么样的应用不适合用MapReduce运行?</h3><p>不是每个应用都适合这种Map/Shuffle/Reduce的模式:</p>
+<ul>
+<li>数据很少的, 因为传输时间会很长. 例如不是网站的后端(not web site back-end)</li>
+<li>对大量数据进行少量更新, 例如将一些文档添加到一个大的索引中</li>
+<li>不可预期的读操作(因为Map和Reduce都不能自己选择输入)</li>
+<li>多次重组(Shuffle), 例如page-rank(可以用MapReduce但不是很高效)</li>
+<li>很多灵活的系统都可以用MR, 但是模型会很复杂</li>
+</ul>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>MapReduce使得大规模集群计算变得流行起来. </p>
+<ul>
+<li>不是最高效或最灵活的</li>
+<li>便于扩展</li>
+<li>易于编程—隐藏了失败处理和数据转移</li>
+</ul>
+<p>这些都是在实践中很好的取舍(trade-offs)<br>我们会在后续课程中还会看到更多比MapReduce高级的框架模型.<br>祝实验愉快!</p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Distributed-System/" rel="tag"># Distributed System</a>
+          
+            <a href="/tags/MIT-6-824/" rel="tag"># MIT 6.824</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/翻译/分布式存储项目Ceph与Swift对比/" rel="next" title="分布式存储项目Ceph与Swift对比">
+                <i class="fa fa-chevron-left"></i> 分布式存储项目Ceph与Swift对比
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/翻译/6-824分布式课程讲稿翻译-Lab1/" rel="prev" title="6.824分布式课程讲稿翻译 - Lab1 MapReduce">
+                6.824分布式课程讲稿翻译 - Lab1 MapReduce <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">Stardust</p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">17</span>
+                  <span class="site-state-item-name">posts</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                
+                  <span class="site-state-item-count">2</span>
+                  <span class="site-state-item-name">categories</span>
+                
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                
+                  <span class="site-state-item-count">29</span>
+                  <span class="site-state-item-name">tags</span>
+                
+              </div>
+            
+
+          </nav>
+
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#导论"><span class="nav-number">1.</span> <span class="nav-text">导论</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#什么是分布式系统"><span class="nav-number">1.1.</span> <span class="nav-text">什么是分布式系统?</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#为什么需要分布式"><span class="nav-number">1.2.</span> <span class="nav-text">为什么需要分布式?</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#为什么要上这门课"><span class="nav-number">1.3.</span> <span class="nav-text">为什么要上这门课?</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#课程结构"><span class="nav-number">1.4.</span> <span class="nav-text">课程结构</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#课程相关人员"><span class="nav-number">1.5.</span> <span class="nav-text">课程相关人员</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#课程组成"><span class="nav-number">2.</span> <span class="nav-text">课程组成</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#授课"><span class="nav-number">2.1.</span> <span class="nav-text">授课</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#阅读"><span class="nav-number">2.2.</span> <span class="nav-text">阅读</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#两次考试"><span class="nav-number">2.3.</span> <span class="nav-text">两次考试</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#实验"><span class="nav-number">2.4.</span> <span class="nav-text">实验</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#期末项目-可选"><span class="nav-number">2.5.</span> <span class="nav-text">期末项目(可选)</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#主要论题"><span class="nav-number">3.</span> <span class="nav-text">主要论题</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#论题-实现-Implementation"><span class="nav-number">3.1.</span> <span class="nav-text">论题: 实现(Implementation)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#论题-性能-Performance"><span class="nav-number">3.2.</span> <span class="nav-text">论题: 性能(Performance)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#论题-容错-Fault-Tolerance"><span class="nav-number">3.3.</span> <span class="nav-text">论题: 容错(Fault Tolerance)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#论题-一致性-Consistency"><span class="nav-number">3.4.</span> <span class="nav-text">论题: 一致性(Consistency)</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#案例研究-MapReduce"><span class="nav-number">4.</span> <span class="nav-text">案例研究: MapReduce</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#使用场景"><span class="nav-number">4.1.</span> <span class="nav-text">使用场景</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#主要目标"><span class="nav-number">4.2.</span> <span class="nav-text">主要目标</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#MapReduce抽象图"><span class="nav-number">4.3.</span> <span class="nav-text">MapReduce抽象图</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#示例-统计字数-word-count"><span class="nav-number">4.4.</span> <span class="nav-text">示例: 统计字数(word count)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#MapReduce隐藏了许多繁琐的细节"><span class="nav-number">4.5.</span> <span class="nav-text">MapReduce隐藏了许多繁琐的细节</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#MapReduce能够方便地扩容"><span class="nav-number">4.6.</span> <span class="nav-text">MapReduce能够方便地扩容</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#什么因素可能会限制性能"><span class="nav-number">4.7.</span> <span class="nav-text">什么因素可能会限制性能?</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#更多细节"><span class="nav-number">4.8.</span> <span class="nav-text">更多细节</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#这些细节设计如何提升在慢速网络环境中的效率"><span class="nav-number">4.9.</span> <span class="nav-text">这些细节设计如何提升在慢速网络环境中的效率</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#如何较好地实现负载均衡"><span class="nav-number">4.10.</span> <span class="nav-text">如何较好地实现负载均衡</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#关于容错-Fault-Tolerance"><span class="nav-number">4.11.</span> <span class="nav-text">关于容错(Fault Tolerance)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Worker宕机恢复的细节"><span class="nav-number">4.12.</span> <span class="nav-text">Worker宕机恢复的细节</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#其他错误-问题"><span class="nav-number">4.13.</span> <span class="nav-text">其他错误/问题</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#什么样的应用不适合用MapReduce运行"><span class="nav-number">4.14.</span> <span class="nav-text">什么样的应用不适合用MapReduce运行?</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#总结"><span class="nav-number">4.15.</span> <span class="nav-text">总结</span></a></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Stardust</span>
+
+  
+</div>
+
+
+  <div class="powered-by">Powered by <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a></div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">Theme &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Muse</a> v5.1.4</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+  
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+          processEscapes: true,
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+        }
+      });
+    </script>
+
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Queue(function() {
+        var all = MathJax.Hub.getAllJax(), i;
+        for (i=0; i < all.length; i += 1) {
+          all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+      });
+    </script>
+    <script type="text/javascript" src="//cdn.bootcss.com/mathjax/2.7.1/latest.js?config=TeX-AMS-MML_HTMLorMML"></script><!-- hexo-inject:begin --><!-- Begin: Injected MathJax -->
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config("");
+</script>
+
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for(i=0; i < all.length; i += 1) {
+      all[i].SourceElement().parentNode.className += ' has-jax';
+    }
+  });
+</script>
+
+<script type="text/javascript" src="//cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+<!-- End: Injected MathJax -->
+<!-- hexo-inject:end -->
+  
+
+
+  
+
+  
+
+</body>
+</html>

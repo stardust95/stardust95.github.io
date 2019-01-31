@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-CN">
+<head><meta name="generator" content="Hexo 3.8.0">
+  <!-- hexo-inject:begin --><!-- hexo-inject:end --><meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css">
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css">
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="Paxos,Distributed System,Consensus Algorithm,">
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="原文: Paxos Made Simple Paxos算法问题描述假设有一组可以提出提案的进程集合。 一个一致性算法需要保证：在这些被提出的提案中，只有一个会被选定(Chosen)；如果，没有提案被提出，那么就不会有被选定的提案；当一个提案被选定后，进程应该可以获取被选定的提案信息(Value)。 一个分布式算法，有两个最重要的属性：Safety 和Liveness，简单来说：  Safety是指">
+<meta name="keywords" content="Paxos,Distributed System,Consensus Algorithm">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Paxos算法学习笔记">
+<meta property="og:url" content="https://stardust-blog.cn/笔记/Paxos算法学习笔记/index.html">
+<meta property="og:site_name" content="Stardust&#39;s Blog">
+<meta property="og:description" content="原文: Paxos Made Simple Paxos算法问题描述假设有一组可以提出提案的进程集合。 一个一致性算法需要保证：在这些被提出的提案中，只有一个会被选定(Chosen)；如果，没有提案被提出，那么就不会有被选定的提案；当一个提案被选定后，进程应该可以获取被选定的提案信息(Value)。 一个分布式算法，有两个最重要的属性：Safety 和Liveness，简单来说：  Safety是指">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="https://stardust-blog.cn/笔记/Paxos算法学习笔记/Figure1.png">
+<meta property="og:updated_time" content="2018-12-21T15:54:44.098Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Paxos算法学习笔记">
+<meta name="twitter:description" content="原文: Paxos Made Simple Paxos算法问题描述假设有一组可以提出提案的进程集合。 一个一致性算法需要保证：在这些被提出的提案中，只有一个会被选定(Chosen)；如果，没有提案被提出，那么就不会有被选定的提案；当一个提案被选定后，进程应该可以获取被选定的提案信息(Value)。 一个分布式算法，有两个最重要的属性：Safety 和Liveness，简单来说：  Safety是指">
+<meta name="twitter:image" content="https://stardust-blog.cn/笔记/Paxos算法学习笔记/Figure1.png">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="https://stardust-blog.cn/笔记/Paxos算法学习笔记/">
+
+
+
+
+
+  <title>Paxos算法学习笔记 | Stardust's Blog</title><!-- hexo-inject:begin --><!-- hexo-inject:end -->
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope="" itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <!-- hexo-inject:begin --><!-- hexo-inject:end --><div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope="" itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Stardust's Blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">Live in thinking</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br>
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br>
+            
+            Archives
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://stardust-blog.cn/笔记/Paxos算法学习笔记/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Stardust">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Stardust's Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">Paxos算法学习笔记</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2018-04-06T16:24:34+08:00">
+                2018-04-06
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/笔记/" itemprop="url" rel="index">
+                    <span itemprop="name">笔记</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>原文: <a href="https://lamport.azurewebsites.net/pubs/paxos-simple.pdf" target="_blank" rel="noopener">Paxos Made Simple</a></p>
+<h1 id="Paxos算法"><a href="#Paxos算法" class="headerlink" title="Paxos算法"></a>Paxos算法</h1><h2 id="问题描述"><a href="#问题描述" class="headerlink" title="问题描述"></a>问题描述</h2><p>假设有一组可以提出提案的进程集合。</p>
+<p>一个一致性算法需要保证：在这些被提出的提案中，只有一个会被<strong>选定(Chosen)</strong>；如果，没有提案被提出，那么就不会有被选定的提案；当一个提案被选定后，进程应该可以获取被选定的<strong>提案信息(Value)</strong>。</p>
+<p>一个分布式算法，有两个最重要的属性：Safety 和Liveness，简单来说：</p>
+<ul>
+<li>Safety是指那些需要保证永远都不会发生的事情（不一致的情况）。</li>
+<li>Liveness是指那些最终一定会发生的事情。</li>
+</ul>
+<p>在Paxos一致性算法中，有三种参与角色，我们用 Proposers ， Acceptors 和 Learners 来表示。注意 Proposer 也可能有多个。在具体的实现中，一个进程可能充当不止一种角色。</p>
+<p>假设不同的参与者之间可以通过发送消息来通信，这里使用普通的<strong>非拜占庭模式</strong>的异步模型：</p>
+<ul>
+<li>每个参与者以任意速度执行，有可能会出错或停止，也可能会重启，但在提案选定后，必须能记录某些信息（否则不可能存在解）。</li>
+<li>消息在传输中可能花费任意长的时间，可能会重复，丢失，但<strong>不会被损坏</strong>。</li>
+</ul>
+<h2 id="提案的选定"><a href="#提案的选定" class="headerlink" title="提案的选定"></a>提案的选定</h2><p>某个 Proposer 向一个 Acceptor 集合发送提案，某个Acceptor 可能会<strong>通过（Accept）</strong>这个提案。当有超过一半（大多数，Majority）的 Acceptor 通过了这个提案，就可以认为这个提案被选定了。为了确保<strong>只有一个</strong>提案能被选定（即一轮Paxos过程只能确定一个提案的Value），我们规定一个 Acceptor 最多只能<strong>通过(Accept)</strong>一个提案。</p>
+<p>在没有宕机和消息丢失的情况下，如果希望即使在只有一个提案被提出的情况下，仍然可以选出一个提案，就需要满足：</p>
+<pre><code>P1. 一个 Acceptor 必须通过它收到的第一个提案。
+</code></pre><p>但这个需求导致了另一个问题: 如果有多个提案被不同的Processor提出，可能会导致虽然每个 Acceptor 都通过了一个提案，但没有一个提案是由大多数 Acceptor 都通过的。</p>
+<p>条件 $P1$ 再加上 一个提案被选定需要由半数以上的 Acceptor 通过，暗示了一个 Acceptor 必须能通过不止一个提案。为了避免混淆，给每个提案设定一个唯一的编号。</p>
+<p>当一个具有某Value的提案被半数以上的 Acceptor 通过，就认为该Value被选定了，即该提案被选定了。虽然允许多个提案被选定，但我们必须要保证<strong>最后所有被选定的提案都具有相同的Value</strong>。因此需要满足：</p>
+<pre><code>P2. 如果具有value值v的提案被选定了，那么所有比它编号更高的被选定的提案的value值也必须是 v 。
+</code></pre><p>由于编号是全序的，$P2$ 就保证了最终只有一个 Value 能被选定这一关键安全性。</p>
+<p>因为被选定的提案至少被一个 Acceptor 通过，因此我们可以通过满足(一个更严格的)条件 $P2a$ 来满足 $P2$:</p>
+<pre><code>P2a. 如果具有value值 v 的提案被选定了，那么所有比它编号更高的、被 Acceptor 通过的提案的value值也必须是 v 。
+</code></pre><p>因为通信是异步的，一个提案可能在某个 Acceptor $c$ 还未收到任何提案时就被选定了。假设这时一个新的 Proposer 苏醒了，然后产生了具有另一个Value值的、编号更高的提案。根据 $P1$ ，$c$ 就需要通过这个提案，但这与 $P2a$ 矛盾。<br>因此，如果要同时满足 $P1$ 和 $P2a$，需要对 $P2a$ 进行强化：</p>
+<pre><code>P2b. 如果具有value值v的提案被选定，那么所有比它编号更高的被 Proposer 提出的提案的value值也必须是 v 。
+</code></pre><p>因为一个提案被 Acceptor 通过前肯定要由某个 Proposer 提出，因此 $P2b$ 隐含了 $P2a$，进而隐含了 $P2$。</p>
+<p>为了找出保证 $P2$ 的方法，先考虑如何证明它成立：<br>假设提案$[m, v]$（编号为$m$，Value值为$v$）被选定了，需要证明具有编号$n(n &gt; m)$的提案都具有Value值$v$。<br>可以通过对$n$使用归纳法来简化证明。假设编号在 $m…(n-1)$之间的提案具有Value值$v$，现在要证明编号为$n$的提案也具有Value值$v$。<br>因为编号$m$的提案已经被选定，意味着存在一个由半数以上的 Acceptor 组成的集合 $C$，$C$ 中的每个 Acceptor 都通过了该提案。再结合归纳假设，$m$ 被选定意味着：$C$中每个 Acceptor 都通过了一个编号在 $m…(n-1)$ 之间的提案，每个编号在 $m…(n-1)$ 之间的被 Acceptor 通过的提案都具有Value值 $v$。</p>
+<p>因为任何包含半数以上 Acceptor 的集合 $S$ 都至少包含 $C$ 中的一个成员，我们可以通过维护如下特性就可以保证编号为 $n$ 的提案具有Value值 $v$:</p>
+<pre><code>P2c. 对于任意的 n 和 v ，如果编号为 n 和value值为 v 的提案被提出，
+那么肯定存在一个由半数以上的 Acceptor 组成的集合 S ，可以满足条件 a) 或者 b) 中的一个：
+  a. S 中不存在任何的 Acceptor 通过过编号小于 n 的提案
+  b. v 是 S 中所有 Acceptor 通过的编号小于 n 的、具有最大编号的提案的value值。
+</code></pre><p>通过维护 $P2c$ 就可以保证 $P2b$ 了，其中的<a href="http://dsdoc.net/paxosmadesimple/index.html#id49" target="_blank" rel="noopener">证明过程</a>同样可以用数学归纳法完成，这里不展开叙述。</p>
+<p>可以看到上面是对一系列条件的逐步加强。要证明它们可以保证一致性，需要反过来：<br>  $P2c$ =&gt; $P2b$ =&gt; $P2a$ =&gt; $P2$，$P2 + P1$ =&gt; 保证了一致性。</p>
+<p>为了维护 $P2c$ 的特性，一个 Proposer 在产生编号为 $n$ 的提案时，必须要知道某个将要或者已经被半数以上的 Acceptor 通过的、编号小于$n$的编号最大的提案。由于 Proposer 难以预测之后 Acceptor 可能会通过的提案，因此 Proposer 需要请求 Acceptor 不要再通过任何编号小于 $n$ 的提案。</p>
+<p>因此可归纳出提案的生成算法如下：</p>
+<ol>
+<li>Proposer 选择一个新的提案编号 $n$，然后向某个 Acceptors 集合的成员发送请求，要求 Acceptor 作出以下响应：<br>a. 保证不再通过任何编号小于 $n$ 的提案<br>b. 返回它已经通过的、编号小于 $n$ 的编号最大的提案（若存在）<br><strong>该请求称为编号为 $n$ 的 Prepare 请求</strong></li>
+<li>如果 Proposer 收到了来自半数以上的 Acceptor 的相应结果，那么它就可以产生编号为 $n$，value值为$v$的提案。这里 $v$ 是所有响应中<strong>编号最大</strong>的提案的Value值。如果响应中不包含任何提案，则这个值可以由 Proposer 任意选择。Proposer 通过向某个 Acceptors 集合发送需要被通过的提案请求来产生一个提案(此时的 Acceptors 集合不一定是响应前一个请求的 Acceptors 集合)。<br><strong>称此请求为编号为 $n$ 的 Accept 请求</strong></li>
+</ol>
+<p>上述就是 Proposer 端的算法。而 Acceptor 端可能会收到来自 Proposer 端的两种请求：Prepare 请求和 Accept 请求。<strong>Acceptor 可以忽略任何请求</strong>而不用担心破坏其算法的安全性，因此我们只需要考虑它在什么情况下对一个请求作出响应。</p>
+<p>它可以在任何时候响应一个 Prepare 请求，而对于一个 Accept 请求，只要在它未违反现有承诺的情况下才能响应一个 Accept 请求（即通过对应提案）。也就是说：</p>
+<pre><code>P1a. 一个 Acceptor 可以通过一个编号为 n 的提案，只要它还未响应任何编号大于 n 的 Prepare 请求。
+</code></pre><p>可以看出 $P1a$ 蕴含了 $P1$ 。</p>
+<p>结合 Proposer 和 Acceptor 的算法，我们可以得到Paxos算法中进行提案选定的如下两个阶段的执行过程：</p>
+<p><strong>Phase 1 - Prepare</strong>:<br>  a. Proposer 选择一个提案编号 $n$，然后向 Acceptor 的某个 majority 集合的成员发送编号为 $n$ 的 Prepare 请求。<br>  b. 如果一个 Acceptor 收到一个编号为 $n$ 的 Prepare 请求，<strong>且 $n$ 大于它已经响应的所有 Prepare 请求的编号</strong>，那么它就会保证不再通过(Accept)任何编号小于 $n$ 的提案，同时将它已经通过的、编号最大的提案(若存在)回复给 Proposer。</p>
+<p><strong>Phase 2 - Accept</strong>:<br>  a. 如果 Proposer 收到来自<strong>半数以上</strong>的 Acceptor 对于它编号为 $n$ 的 Prepare 请求的响应，那么它就会发送一个 编号为 $n$，Value值为 $v$ 的提案的 Accept 请求给 Acceptors。这里 $v$ 是收到的响应回复中编号最大的提案的Value值，如果响应中不包含提案，那就可以是任意值。<br>  b. 如果 Acceptor 收到一个编号为 $n$ 的提案的 Accept 请求，只要它<strong>还未对编号大于 $n$ 的 Prepare 请求作出响应，它就可以通过这个提案。</strong></p>
+<img src="/笔记/Paxos算法学习笔记/Figure1.png">
+<h2 id="获取被选定的提案值"><a href="#获取被选定的提案值" class="headerlink" title="获取被选定的提案值"></a>获取被选定的提案值</h2><p>Learner 必须确定某个提案是否已被半数以上的 Acceptor 通过，以获取被通过的提案的值。最简单的方式是每个 Acceptor 只要通过了一个提案，就通知所有的 Learner。这可以让 Learner 尽快找出被选定的值，但需要每个 Acceptor 都要与每个 Learner 通信，所需通信次数为二者数量的乘积。</p>
+<p>由于模型假定在非拜占庭模式下，因此一个 Learner 很容易通过另一个 Learner 了解到一个值已经被选定，所以我们可以让所有的 Acceptor 将它们的通过信息发给一个特定的 Learner，当该 Learner 统计出某个Value被选定时，再通知其他的 Learner。但这也不可靠，因为可能会出现单点失败。通信次数是 Acceptor 和 Learner 数量之和。</p>
+<p>更一般的，Acceptor 可以将它们的通过信息发给一个特定的 Learner 集合，它们中的每个都可以再一个 Value 被选定后通知所有的 Learner，这个集合中的 Learner 个数越多，可靠性越好，但通信复杂度也越高。</p>
+<h2 id="进展性"><a href="#进展性" class="headerlink" title="进展性"></a>进展性</h2><p>在某种情况下，两个 Proposers 可能持续地生成编号递增的一系列提案，但是 Acceptors 轮流通过两个 Proposer 请求的提案，因此循环往复，没有提案会被选定。</p>
+<p>为保证进度，必须选择一个<strong>特定的 Proposer</strong> 来作为一个唯一的提案提出者。如果这个 Proposer 可以同半数以上的 Acceptors 通信，同时可以使用一个<strong>比现有编号都大的编号作为提案</strong>的话，就可以成功地产生一个可以被通过的提案。如果通过 Acceptors 的回复它知道了有更大编号的提案存在，就舍弃当前提案重做，最终该 Proposer 一定会产生一个编号足够大的提案。</p>
+<p>著名的<a href="https://yeasy.gitbooks.io/blockchain_guide/content/distribute_system/flp.html" target="_blank" rel="noopener">FLP不可能性原理</a>提出，一个可靠的 Proposer 选举算法要么利用随机性，要么利用实时性（如超时机制）来实现。</p>
+<h2 id="实现要点"><a href="#实现要点" class="headerlink" title="实现要点"></a>实现要点</h2><p>Acceptor 在发送请求的响应前，需要将响应记录在非易失性的存储设备中以防止出错。</p>
+<p>保证提案编号唯一性的机制：不同的 Proposer 从不相交的编号集合中选择自己的编号，这样任何两个 Proposer 就不会有相同编号的提案了。每个 Proposer 需要将它目前生成的最大编号的提案记录在非易失性存储中，然后用一个比已经使用的所有编号都大的提案开始 Phase 1。</p>
+<h1 id="状态机模型实现"><a href="#状态机模型实现" class="headerlink" title="状态机模型实现"></a>状态机模型实现</h1><p>实现分布式系统的一种简单方式就是，使用一组客户端集合然后向一个中央服务器发送命令。但使用中央服务器的系统在该服务器失败的情况下，整个系统就失败了。<br>因此，我们使用一组服务器来代替它——每个服务器都独立了实现了该状态机。因为状态机是确定性的，如果它们都按照相同的命令序列执行，那么就会产生相同的状态机状态和输出。一个产生命令的客户端，就可以使用任一个服务器为它产生的输出。</p>
+<p>为了保证所有的服务器都执行相同的状态机命令序列，我们需要实现一系列独立的Paxos一致性算法实例，第 i 个实例选定的值作为序列中的第 i 个状态机命令。在算法的每个实例中，每个服务器担任所有的角色(Proposer、Acceptor和Learner)。现在，我们假设服务器集合是固定的，这样所有的一致性算法实例都具有相同的参与者集合。</p>
+<p>正常执行中，一个服务器会被选为Leader，它会在所有的一致性算法实例中被选作特定的Proposer(唯一的提案提出者)。客户端向该Leader发送命令，它来决定每个命令被安排在序列中的何处。如果Leader决定某个客户端命令应该是第135个命令，它会尝试让该命令成为第135个一致性算法实例选定的value值。通常，这都会成功，但是由于出错或者另一个服务器也认为自己是Leader，而它对第135个命令应该持有异议。但是一致性算法可以保证，最多只有一个命令会被选定为第135个命令。</p>
+<h2 id="被选定的提案号是否一定为顺序递增"><a href="#被选定的提案号是否一定为顺序递增" class="headerlink" title="被选定的提案号是否一定为顺序递增"></a>被选定的提案号是否一定为顺序递增</h2><p>先区分两个概念：</p>
+<ul>
+<li>提案在Phase1被大多数节点接受，称为被 <strong>确定</strong>。</li>
+<li>提案在Phase2倍大多数节点通过，称为被 <strong>选定</strong>，此时该提案才能生效，该提案的值也就是这次Paxos一致性算法实例所确定的值。</li>
+</ul>
+<p>某个节点上记录的被选定的提案号不一定是顺序递增的。</p>
+<p>Leader可以在它提出的命令141被选定前提出命令142。它发送的关于命令141的消息有可能全部丢失，因此在所有其他服务器获知Leader的命令141之前，命令142就可能已被选定。当Leader无法收到实例141的Phase2的期望响应之后，它会重传这些信息，但是仍然可能会失败，这样就在被选定的命令序列中，出现了缺口。假设一个Leader可以提前确定 α 个命令，这意味着在i被选定之后，它就可以提出命令 i + 1 到 i + α 的命令了。<br>这样就可能形成一个长达 α - 1 的命令缺口。</p>
+<h2 id="集群成员变化"><a href="#集群成员变化" class="headerlink" title="集群成员变化"></a>集群成员变化</h2><p>新的Leader选出来后，首先要成为其他所有一致性算法执行实例的 <strong>Learner</strong>，来获取目前已经选定的大部分命令。<br>假设它从其他节点知道了命令1-134,138及139，也就是一致性算法实例1-134,138及139选定的值。<br>那么，它需要对135-137以及所有其他大于139的算法实例执行Phase1。<br>假设根据其他节点对Phase1的回复表明，将要在执行实例135和140中被提出的提案值已经 <strong>确定</strong>（即这两个实例已经执行了Phase1），但是其他执行实例的提案值没有。<br>那么现在该Leader就可以执行实例135和140的Phase2，进而 <strong>选定</strong> 第135和140号命令。</p>
+<p>Leader以及其他所有已经获取该Leader的已知命令的服务器，现在可以执行命令1-135。然而它还不能执行138-140，因为目前为止命令136和137还未选定。</p>
+<p>Leader可以将下两个到来的客户端请求命令作为命令136和137。<br>但是我们也可以提起一个特殊的“noop”命令作为136和137号命令来填补这个空缺，(通过执行一致性算法实例136和137的Phase2来完成) 。<br>一旦该noop命令被选定，命令138-140就可以执行了。</p>
+<p>一个新的Leader需要为多个一致性算法实例执行Phase1。在上面的情景中，就是135-137以及139之后的Paxos算法实例。<br>只要通过向其他的服务器发送合适的消息内容，就可以让所有的Paxos算法实例使用同一个提案编号计数器。<br><!-- 在Phase1，只要一个Acceptor已经收到来自某个Proposer的Phase2消息，那么它就可以为多个Paxos算法实例做出承诺。（在上面的场景中，就是针对135和140的情况）。？？？
+因此一个服务器（作为Acceptor角色时）通过选择一个适当的短消息就可以对所有实例做出响应，那么执行这样无限多个实例的Phase1也就不会有问题  --></p>
+<h1 id="Paxos算法流程图示"><a href="#Paxos算法流程图示" class="headerlink" title="Paxos算法流程图示"></a>Paxos算法流程图示</h1><p>引用wiki上的流程图：</p>
+<pre><code>Client   Proposer      Acceptor     Learner
+   |         |          |  |  |       |  |
+   X--------&gt;|          |  |  |       |  |  Request
+   |         X---------&gt;|-&gt;|-&gt;|       |  |  Prepare(1)
+   |         |&lt;---------X--X--X       |  |  Promise(1,{Va,Vb,Vc})
+   |         X---------&gt;|-&gt;|-&gt;|       |  |  Accept!(1,Vn)
+   |         |&lt;---------X--X--X------&gt;|-&gt;|  Accepted(1,Vn)
+   |&lt;---------------------------------X--X  Response
+   |         |          |  |  |       |  |
+</code></pre><h1 id="个人思考"><a href="#个人思考" class="headerlink" title="个人思考"></a>个人思考</h1><h2 id="Proposer和Leader概念"><a href="#Proposer和Leader概念" class="headerlink" title="Proposer和Leader概念"></a>Proposer和Leader概念</h2><p>Proposer可以有多个，但为了快速达成一致，通常只让一个Proposer发起提案，该Proposer称为Leader。</p>
+<h2 id="Proposer是否可能收到不同value值的prepare响应"><a href="#Proposer是否可能收到不同value值的prepare响应" class="headerlink" title="Proposer是否可能收到不同value值的prepare响应"></a>Proposer是否可能收到不同value值的prepare响应</h2><p>假设有5台Acceptor，分别为A1 A2 A3 A4 A5<br>1) Proposer A发起提案[1, v1]，发送给A1 A2 A3 A4<br>ProposerA Prepare[1,v1] ==&gt;A1<br>ProposerA Prepare[1,v1] ==&gt;A2<br>ProposerA Prepare[1,v1] ==&gt;A3<br>ProposerA Prepare[1,v1] ==&gt;A4</p>
+<p>2）Proposer A收到了超过半数的pok。<br>ProposeA &lt;== A1:PrepareOK<br>ProposeA &lt;== A2:PrepareOK<br>ProposeA &lt;== A3:PrepareOK<br>ProposeA &lt;== A4:PrepareOK</p>
+<p>3）另外一个Proposer B同样发起提案，但给的是A2 A3 A4 A5<br>ProposerB Prepare[2,v2] ==&gt;A2<br>ProposerB Prepare[2,v2] ==&gt;A3<br>ProposerB Prepare[2,v2] ==&gt;A4<br>ProposerB Prepare[2,v2] ==&gt;A5</p>
+<p>4）Proposer B收到了超过半数的pok。<br>ProposeB &lt;== A2:PrepareOK<br>ProposeB &lt;== A3:PrepareOK<br>ProposeB &lt;== A4:PrepareOK<br>ProposeB &lt;= =A5:PrepareOK</p>
+<p>5） Propose A发起Accept议案请求给A1 A2 A3 A4。<br>ProposerA Accept[1,v1] ==&gt;A1<br>ProposerA Accept[1,v1] ==&gt;A2（网络丢包；不丢包则被拒绝）<br>ProposerA Accept[1,v1] ==&gt;A3（网络丢包；不丢包则被拒绝）<br>ProposerA Accept[1,v1] ==&gt;A4（网络丢包；不丢包则被拒绝）</p>
+<p>6）同样另一个Propose B，发起Accept议案请求给A2 A3 A4 A5，由于网络原因，只有A2收到并被A2 accept下来<br>ProposerB Accept[1,v1] ==&gt;A2<br>ProposerB Accept[1,v1] ==&gt;A3（网络丢包，没被accept到）<br>ProposerB Accept[1,v1] ==&gt;A4（网络丢包，没被accept到）<br>ProposerB Accept[1,v1] ==&gt;A5（网络丢包，没被accept到）</p>
+<p>这样子下来，Acceptor1 Accept的是[1,v1] Acceptor2 Accept的是[2,v2]，A3 A4 A5没accept过值。没有超过半数，提案失败。</p>
+<h2 id="哪一个时刻能确定一个提案被选定"><a href="#哪一个时刻能确定一个提案被选定" class="headerlink" title="哪一个时刻能确定一个提案被选定"></a>哪一个时刻能确定一个提案被选定</h2><p>超过半数的Acceptors通过了一个Accept请求就已经确认选定了，这里无论Proposer是否能收到。理论不关心是否回应，实现才需要关心回应。</p>
+<h2 id="关于命令缺口和noop命令"><a href="#关于命令缺口和noop命令" class="headerlink" title="关于命令缺口和noop命令"></a>关于命令缺口和noop命令</h2><p>疑问：<br>前面提到过</p>
+<p>  因为状态机是确定性的，如果它们都按照相同的命令序列执行，那么就会产生相同的状态机状态和输出。一个产生命令的客户端，就可以使用任一个服务器为它产生的输出。</p>
+<p>如果按照对单机数据库的理解，每个命令都是顺序对应一个Paxos算法实例，那么各个Paxos实例选定的值顺序就是客户端提出命令的顺序。如果一段命令出现缺口，用noop命令填充后继续执行缺口后面的命令，不是与客户端期待的过程不符吗？</p>
+<p>思考：<br>在实现接口时，客户端的一次请求在一定超时时间内未能达到一致，即未能选定提案，那么就向客户端返回请求失败，之后由客户端重新提交请求或放弃。</p>
+<p>疑问2：<br>如果采用客户端的后续请求来填充命令缺口，那么是否会导致不一致？<br>例如，Leader只得知选定了1~135，137~140，缺口为136。<br>假设137是<code>A=1</code>，下一条命令<code>A=2</code>若被填充到136，顺序执行135~140时，最终结果为A=1，显然不符合客户端的预期。</p>
+<p>思考：<br>命令缺口应该使用noop命令填充。</p>
+<h1 id="Paxos改进方案"><a href="#Paxos改进方案" class="headerlink" title="Paxos改进方案"></a>Paxos改进方案</h1><h2 id="Multi-paxos"><a href="#Multi-paxos" class="headerlink" title="Multi-paxos"></a>Multi-paxos</h2><p>由于basic-paxos算法允许多个Proposer同时发起提案，在极端情况下可能导致Propose交替被Acceptors同意，各个Propose交替执行Phase1，永远无法达到一致状态。在工业上通常实现的是basic-paxos的改进版——Multi-paxos。</p>
+<p>Multi-paxos做的重大优化就是：<br><strong>通过限制只有一个Proposer（Leader），使得Paxos只需要进行一阶段的提交</strong>。</p>
+<p>Multi-paxos将集群状态分成了两种：</p>
+<ul>
+<li>选主状态，由集群中的任意节点拉票发起选主，拉票中带上自己的vx（已知最大提案号），通过收集集群中 <strong>半数以上</strong> 的vx，来更新自己的vx值，得到目前集群通过的最大vx</li>
+<li>强leader状态，leader对vn（下一个提案号）的演变了如指掌，每次把vn的值直接在一阶段中发送给acceptor，和basic paxos的区别：basic paxos一阶段的时候，proposer对vn的值一无所知，要依赖一阶段的结果来算vn。</li>
+</ul>
+<p>Multi-paxos流程图：</p>
+<pre><code>Client     Leader       Acceptor     Learner
+   |         |          |  |  |       |  |  --- Following Requests ---
+   X--------&gt;|          |  |  |       |  |  Request
+   |         X---------&gt;|-&gt;|-&gt;|       |  |  Accept!(N,I+1,W)(prepare）
+   |         |&lt;---------X--X--X------&gt;|-&gt;|  Accepted(N,I+1,W)(prepared)
+   |&lt;---------------------------------X--X  Response
+   |         |          |  |  |       |  |
+</code></pre><p>流程图中没有了basic paxos的两阶段，变成了一个一阶段的递交协议：<br>一阶段a：发起者（leader）直接告诉Acceptor，准备递交协议号为I+1的协议<br>一阶段b：收到了大部分acceptor的回复后（图中是全部），acceptor就直接回复client协议成功写入</p>
+<p>Multi Paxos中leader用于避免活锁，但leader的存在会带来其他问题，一是如何选举和保持唯一leader(虽然无leader或多leader不影响一致性，但影响决议进程progress)，二是充当leader的节点会承担更多压力，如何均衡节点的负载。Mencius提出节点轮流担任leader，以达到均衡负载的目的；租约(lease)可以帮助实现唯一leader，但leader故障情况下可导致服务短期不可用。</p>
+<h2 id="Raft"><a href="#Raft" class="headerlink" title="Raft"></a>Raft</h2><p>对比Raft和Multi-paxos不难发现，在Leader选举完成后， </p>
+<h2 id="Fast-Paxos"><a href="#Fast-Paxos" class="headerlink" title="Fast-Paxos"></a>Fast-Paxos</h2><h2 id="EPaxos"><a href="#EPaxos" class="headerlink" title="EPaxos"></a>EPaxos</h2><h2 id="Zab"><a href="#Zab" class="headerlink" title="Zab"></a>Zab</h2><h1 id="程序模拟实现"><a href="#程序模拟实现" class="headerlink" title="程序模拟实现"></a>程序模拟实现</h1><p>见 <a href="https://github.com/stardust95/MIT6.824/blob/master/src/paxos/paxos.go" target="_blank" rel="noopener">MIT6.824(2015)-Lab3: Golang实现的Paxos协议</a></p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Paxos/" rel="tag"># Paxos</a>
+          
+            <a href="/tags/Distributed-System/" rel="tag"># Distributed System</a>
+          
+            <a href="/tags/Consensus-Algorithm/" rel="tag"># Consensus Algorithm</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/翻译/基于持续数据保护和检查点的虚拟机备份还原系统/" rel="next" title="<基于持续数据保护(CDP)和Checkpoint的虚拟机实时备份恢复系统>论文翻译">
+                <i class="fa fa-chevron-left"></i> <基于持续数据保护(cdp)和checkpoint的虚拟机实时备份恢复系统>论文翻译
+              </基于持续数据保护(cdp)和checkpoint的虚拟机实时备份恢复系统></a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/笔记/磁盘分区知识笔记/" rel="prev" title="磁盘分区知识笔记">
+                磁盘分区知识笔记 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">Stardust</p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">17</span>
+                  <span class="site-state-item-name">posts</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                
+                  <span class="site-state-item-count">2</span>
+                  <span class="site-state-item-name">categories</span>
+                
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                
+                  <span class="site-state-item-count">29</span>
+                  <span class="site-state-item-name">tags</span>
+                
+              </div>
+            
+
+          </nav>
+
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#Paxos算法"><span class="nav-number">1.</span> <span class="nav-text">Paxos算法</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#问题描述"><span class="nav-number">1.1.</span> <span class="nav-text">问题描述</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#提案的选定"><span class="nav-number">1.2.</span> <span class="nav-text">提案的选定</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#获取被选定的提案值"><span class="nav-number">1.3.</span> <span class="nav-text">获取被选定的提案值</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#进展性"><span class="nav-number">1.4.</span> <span class="nav-text">进展性</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#实现要点"><span class="nav-number">1.5.</span> <span class="nav-text">实现要点</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#状态机模型实现"><span class="nav-number">2.</span> <span class="nav-text">状态机模型实现</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#被选定的提案号是否一定为顺序递增"><span class="nav-number">2.1.</span> <span class="nav-text">被选定的提案号是否一定为顺序递增</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#集群成员变化"><span class="nav-number">2.2.</span> <span class="nav-text">集群成员变化</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Paxos算法流程图示"><span class="nav-number">3.</span> <span class="nav-text">Paxos算法流程图示</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#个人思考"><span class="nav-number">4.</span> <span class="nav-text">个人思考</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Proposer和Leader概念"><span class="nav-number">4.1.</span> <span class="nav-text">Proposer和Leader概念</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Proposer是否可能收到不同value值的prepare响应"><span class="nav-number">4.2.</span> <span class="nav-text">Proposer是否可能收到不同value值的prepare响应</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#哪一个时刻能确定一个提案被选定"><span class="nav-number">4.3.</span> <span class="nav-text">哪一个时刻能确定一个提案被选定</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#关于命令缺口和noop命令"><span class="nav-number">4.4.</span> <span class="nav-text">关于命令缺口和noop命令</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Paxos改进方案"><span class="nav-number">5.</span> <span class="nav-text">Paxos改进方案</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Multi-paxos"><span class="nav-number">5.1.</span> <span class="nav-text">Multi-paxos</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Raft"><span class="nav-number">5.2.</span> <span class="nav-text">Raft</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Fast-Paxos"><span class="nav-number">5.3.</span> <span class="nav-text">Fast-Paxos</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#EPaxos"><span class="nav-number">5.4.</span> <span class="nav-text">EPaxos</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Zab"><span class="nav-number">5.5.</span> <span class="nav-text">Zab</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#程序模拟实现"><span class="nav-number">6.</span> <span class="nav-text">程序模拟实现</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Stardust</span>
+
+  
+</div>
+
+
+  <div class="powered-by">Powered by <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a></div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">Theme &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Muse</a> v5.1.4</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+  
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+          processEscapes: true,
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+        }
+      });
+    </script>
+
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Queue(function() {
+        var all = MathJax.Hub.getAllJax(), i;
+        for (i=0; i < all.length; i += 1) {
+          all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+      });
+    </script>
+    <script type="text/javascript" src="//cdn.bootcss.com/mathjax/2.7.1/latest.js?config=TeX-AMS-MML_HTMLorMML"></script><!-- hexo-inject:begin --><!-- Begin: Injected MathJax -->
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config("");
+</script>
+
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for(i=0; i < all.length; i += 1) {
+      all[i].SourceElement().parentNode.className += ' has-jax';
+    }
+  });
+</script>
+
+<script type="text/javascript" src="//cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+<!-- End: Injected MathJax -->
+<!-- hexo-inject:end -->
+  
+
+
+  
+
+  
+
+</body>
+</html>

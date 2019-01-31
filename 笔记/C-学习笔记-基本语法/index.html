@@ -1,0 +1,982 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-CN">
+<head><meta name="generator" content="Hexo 3.8.0">
+  <!-- hexo-inject:begin --><!-- hexo-inject:end --><meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css">
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css">
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="C++,Programming Language,">
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="变量 POD类型  POD类型(Plain old data structure): 在源代码兼容于ANSI C时非常重要。POD对象与C语言的对应对象具有共同的一些特性，包括初始化、复制、内存布局、寻址。具体分为以下两类: 标量类型(scalar type): 算术类型(arithmetic type): 整数类型(integral type): 有符号整数类型 (signed char, sh">
+<meta name="keywords" content="C++,Programming Language">
+<meta property="og:type" content="article">
+<meta property="og:title" content="C++学习笔记-基本语法">
+<meta property="og:url" content="https://stardust-blog.cn/笔记/C-学习笔记-基本语法/index.html">
+<meta property="og:site_name" content="Stardust&#39;s Blog">
+<meta property="og:description" content="变量 POD类型  POD类型(Plain old data structure): 在源代码兼容于ANSI C时非常重要。POD对象与C语言的对应对象具有共同的一些特性，包括初始化、复制、内存布局、寻址。具体分为以下两类: 标量类型(scalar type): 算术类型(arithmetic type): 整数类型(integral type): 有符号整数类型 (signed char, sh">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="https://stardust-blog.cn/笔记/C-学习笔记-基本语法/benchmark.jpg">
+<meta property="og:updated_time" content="2018-12-21T15:54:44.092Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="C++学习笔记-基本语法">
+<meta name="twitter:description" content="变量 POD类型  POD类型(Plain old data structure): 在源代码兼容于ANSI C时非常重要。POD对象与C语言的对应对象具有共同的一些特性，包括初始化、复制、内存布局、寻址。具体分为以下两类: 标量类型(scalar type): 算术类型(arithmetic type): 整数类型(integral type): 有符号整数类型 (signed char, sh">
+<meta name="twitter:image" content="https://stardust-blog.cn/笔记/C-学习笔记-基本语法/benchmark.jpg">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="https://stardust-blog.cn/笔记/C-学习笔记-基本语法/">
+
+
+
+
+
+  <title>C++学习笔记-基本语法 | Stardust's Blog</title><!-- hexo-inject:begin --><!-- hexo-inject:end -->
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope="" itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <!-- hexo-inject:begin --><!-- hexo-inject:end --><div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope="" itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Stardust's Blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">Live in thinking</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br>
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br>
+            
+            Archives
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://stardust-blog.cn/笔记/C-学习笔记-基本语法/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Stardust">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Stardust's Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">C++学习笔记-基本语法</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2015-05-06T10:37:02+08:00">
+                2015-05-06
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/笔记/" itemprop="url" rel="index">
+                    <span itemprop="name">笔记</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="变量"><a href="#变量" class="headerlink" title="变量"></a>变量</h2><ul>
+<li><a href="https://zh.wikipedia.org/wiki/POD" target="_blank" rel="noopener">POD类型</a><br>  POD类型(Plain old data structure): 在源代码兼容于ANSI C时非常重要。POD对象与C语言的对应对象具有共同的一些特性，包括初始化、复制、内存布局、寻址。具体分为以下两类:<ul>
+<li>标量类型(scalar type):<ul>
+<li>算术类型(arithmetic type):<ul>
+<li>整数类型(integral type):<ul>
+<li>有符号整数类型 (signed char, short, int, long),</li>
+<li>无符号整数类型(unsigned char, unsigned short, unsigned int, unsigned long),</li>
+<li>字元类型char与宽字元类型wchar_t</li>
+<li>布林类型bool</li>
+</ul>
+</li>
+<li>浮点类型(floating type)</li>
+</ul>
+</li>
+<li>枚举类型(enumeration type)</li>
+<li>指针类型(pointer type):<ul>
+<li>空指针类型(pointer-to-void, 即void *)</li>
+<li>对象指针(pointer-to-object), 以及指向静态数据成员的指针(pointer-to-static-member-data)</li>
+<li>函数指针(pointer-to-function), 以及指向静态成员函数的指针(pointer-to-static-member-function)</li>
+</ul>
+</li>
+<li>成员指针类型(pointer-to-member type):<ul>
+<li>非静态数据成员指针(pointer-to-nonstatic-member-data)</li>
+<li>非静态成员函数指针(pointer-to-nonstatic-member-functions)</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>POD类类型: 在C++11后, 把POD类类型的判断标准推广为两大类: <a href="https://docs.microsoft.com/zh-cn/cpp/cpp/trivial-standard-layout-and-pod-types" target="_blank" rel="noopener">平凡以及标准布局</a>。当且仅当一个类或结构体同时满足平凡和标准布局时，属于POD类类型。<ul>
+<li>平凡类(trival): 可以静态初始化、可以用memcpy直接复制数据而不是必须用拷贝构造函数。其生存期始于它的对象的存储被定义，无须等到构造函数完成。<br>判断标准: 当且仅当一个类或结构体的所有特殊成员函数(构造函数、拷贝构造函数、移动构造函数、赋值运算符、移动运算符、析构函数)均使用编译器提供的、或是显式初始化为default(等同于使用编译器提供的)时，该类型是一个平凡类/结构体。<br>我们说一个成员函数是平凡的，当且仅当该成员函数不是用户自定义的，并且它属于的类满足以下条件:<ul>
+<li>没有虚函数或虚基类</li>
+<li>没有基类包含非平凡的构造函数、赋值运算符或析构函数</li>
+<li>没有数据成员包含非平凡的构造函数、赋值运算符或析构函数</li>
+</ul>
+</li>
+<li>标准布局的类(standard-layout): 意味着它是有序的并且其成员的内存布局兼容于C语言。<br>判断标准: 一个标准布局的类需满足以下条件:<ul>
+<li>没有虚函数或虚基类</li>
+<li>所有非静态数据成员有相同的访问控制(public, private, protected)</li>
+<li>所有非静态成员都是标准布局的</li>
+<li>所有基类都是标准布局的</li>
+<li>任何基类不能与该类第一个非静态数据成员类型相同</li>
+<li>满足下列条件中的任意一个:<ul>
+<li>没有基类包含非静态数据成员</li>
+<li>(继承体系中)最底层的类不包含非静态数据成员, 且不多于一个基类包含非静态数据成员</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>示例:<pre><code class="lang-cpp">  struct B{  
+  protected:  
+      virtual void Foo() {}  
+  };  
+  // Neither trivial nor standard-layout  
+  struct A : B{   
+      int a;  
+      int b;  
+      void Foo() override {} // Virtual function  
+  };  
+  // Trivial but not standard-layout  
+  struct C{   
+      int a;  
+  private:  
+      int b;  // Different access control  
+  };  
+  // Standard-layout but not trivial  
+  struct D{   
+      int a;  
+      int b;  
+      D() {} //User-defined constructor  
+  };  
+  struct POD{  
+      int a;  
+      int b;  
+  };  
+  int main(){  
+      cout &lt;&lt; boolalpha;  
+      cout &lt;&lt; &quot;A is trivial is &quot; &lt;&lt; is_trivial&lt;A&gt;() &lt;&lt; endl; // false  
+      cout &lt;&lt; &quot;A is standard-layout is &quot; &lt;&lt; is_standard_layout&lt;A&gt;() &lt;&lt; endl;  // false  
+      cout &lt;&lt; &quot;C is trivial is &quot; &lt;&lt; is_trivial&lt;C&gt;() &lt;&lt; endl; // true  
+      cout &lt;&lt; &quot;C is standard-layout is &quot; &lt;&lt; is_standard_layout&lt;C&gt;() &lt;&lt; endl;  // false  
+      cout &lt;&lt; &quot;D is trivial is &quot; &lt;&lt; is_trivial&lt;D&gt;() &lt;&lt; endl;  // false  
+      cout &lt;&lt; &quot;D is standard-layout is &quot; &lt;&lt; is_standard_layout&lt;D&gt;() &lt;&lt; endl; // true  
+      cout &lt;&lt; &quot;POD is trivial is &quot; &lt;&lt; is_trivial&lt;POD&gt;() &lt;&lt; endl; // true  
+      cout &lt;&lt; &quot;POD is standard-layout is &quot; &lt;&lt; is_standard_layout&lt;POD&gt;() &lt;&lt; endl; // true  
+      return 0;  
+  }
+</code></pre>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>定义和声明的区分<br>  类内:<pre><code>  int a; 声明
+  void func(); 声明
+  void func2(){} 定义
+</code></pre>  类外:<pre><code>  int a; 定义
+  int a = 0; 定义+初始化
+  extern int a; 声明
+</code></pre></li>
+<li>名称空间: 相当于预先把一些变量或类的名字声明出来, 以便禁止用户再使用这些相同的名称来命名自己的变量或类而造成混乱. 如 cin 和cout这两个关键字都是在std这个名称空间中定义的(输入和输出流)</li>
+</ul>
+<h2 id="函数"><a href="#函数" class="headerlink" title="函数"></a>函数</h2><ul>
+<li>在函数的参数表中, 如果排在前面的参数被赋予默认值, 则排在其后的所有参数都必须有默认值</li>
+<li>相似地, 调用函数时省略了某一个参数, 那么这个参数之后的所有参数都必须被省略, 这个参数之前的参数不能被省略( 否则会出现二义性)</li>
+<li>默认实参可用全局变量来赋值, 但不可用局部变量</li>
+<li>与其他函数不一样, 内联函数和constexpr函数可以被多次定义, 但多次定义必须一致, 所以这两类函数通常被 放在头文件中</li>
+<li>由于定义一个指针数组的形式为<br>  <code>int (*pArr)[10];</code><br>  因此定义返回一个数组的函数的形式为<br>  <code>int ( *GetArr(param_list) ) [10]{  }</code><br>  在C++11中, 允许返回值后置的形式:<br>  <code>auto GetArr(param_list) -&gt; int (*) [10] { }</code><br>  或者使用decltype运算符( 假设之前已经存在定义语句 <code>int myArr[10];</code> ) :<br>  <code>decltype(myArr) * GetArr(param_list) { }</code></li>
+<li>返回一个数组的引用:<pre><code class="lang-cpp">  string ( &amp;f(void) )[10] {
+      static string arr[10]; 
+      return arr; 
+  }
+</code></pre>
+  返回的必须是静态变量(的引用)或定义在该函数外的全局变量(的引用), 不能是局部变量<br>  否则一旦出了函数的作用域局部变量所占用的内存就被回收了, 返回的引用指向的内存是不可用的</li>
+<li>const放在函数后面修饰函数会影响函数签名, 但const修饰返回值则不会影响</li>
+<li></li>
+</ul>
+<h2 id="输入输出流"><a href="#输入输出流" class="headerlink" title="输入输出流"></a>输入输出流</h2><ul>
+<li>cout是一个(智能)对象,表示输出流,对象属性包括一个插入运算符&lt;&lt;,可以将其右侧的信息插入到输出流中.而且其插入的信息可以是任意类型的(不用像printf那样还需要提前知道类型)</li>
+<li>类似的,cin表示输入流这个对象,使用&gt;&gt;从输入流中抽取字符以便&gt;&gt;右边的变量接收,并且能将键盘输入的字符自动转换为变量能够存储的形式</li>
+<li>类之于对象就像类型之于变量,即 类定义描述某种数据的构成等全部属性及其用法(即可执行的操作),而对象是根据数据格式创建的实体.这样来看,cout就是ostream类定义(iostream文件的另一个成员)的一个对象.ostream描述了该类的对象及可对它进行的操作,如将数据或字符串插入到输入流中</li>
+<li>读入字符串的方法:</li>
+</ul>
+<div class="table-container">
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th>特征</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>cin &gt;&gt; s</code></td>
+<td>读到不可见字符如’ ‘, ‘\n’, ‘\t’等停止</td>
+</tr>
+<tr>
+<td><code>getline (istream&amp; is, string&amp; str, char delim)</code></td>
+<td>可用于读取不定长的字符, 直接写入到字符串变量中</td>
+</tr>
+<tr>
+<td><code>istream.getline (char* s, streamsize n, char delim )</code></td>
+<td>可用于读取固定个数的字符, istream.get()也有相同参数表的重载</td>
+</tr>
+</tbody>
+</table>
+</div>
+<ul>
+<li>一旦一个流发生错误, 其上后序的IO操作都会失效, 因此应该在使用一个流之前检查它是否处于正常状态:<br>  如 while( cin &gt;&gt; input ){} 如果输入成功, 流保持有效状态, 返回值为真</li>
+<li>将标准输入重定向为一个字符串 :<pre><code class="lang-cpp">  stringstream ss(&quot;Content&quot;);
+  cin.rdbuf( ss.rdbuf() );
+</code></pre>
+  注意这里 ss定义的时候不能用构造函数 stringstream(const &amp; string, size_t), 为什么?</li>
+<li>只用 ios::out模式打开时, 会把原来的文件清空, 因此要想只重写文件的一部分必须用ios::in | ios::out 模式来打开</li>
+<li><p><code>std::ios::sync_with_stdio(false)</code>的作用:<br>  标准输入, 输出流会先把输入, 输出的东西存入缓存区再输出, 因此效率比printf, scanf要低, 增加了这一句之后就加快了输入输出的效率, 有时候可能是解决TLE的关键.<br>  相关解释:</p>
+<blockquote>
+<p>Synchronizes the C++ streams with the standard I/O system. The first time this function is called, it resets the predefined streams (cin, cout, cerr, clog) to use astdiobuf object rather than a filebuf object. After that, you can mix I/O using these streams with I/O using stdin, stdout, and stderr. Expect some performance decrease because there is buffering both in the stream class and in the standard I/O file system.<br>After the call to sync_with_stdio, the ios::stdio bit is set for all affected predefined stream objects, and cout is set to unit buffered mode.</p>
+</blockquote>
+<p>  实测数据:</p>
+  <img src="/笔记/C-学习笔记-基本语法/benchmark.jpg">
+</li>
+</ul>
+<h2 id="编译链接"><a href="#编译链接" class="headerlink" title="编译链接"></a>编译链接</h2><ul>
+<li>关于多个源文件(.cpp)公有变量的使用方法<br>  若var要作为公有变量, 则应该且必须仅在一个.cpp文件内定义<pre><code>  extern int var = 0;
+</code></pre>  并且在所有要用到该变量的源文件内对该变量进行声明<code>extern int var</code>; (也有不需要该声明的办法, 因为gcc在编译的时候是按照makefile中文件出现的顺序来寻找符号的, 因此只要把定义该变量的源文件放在其他源文件的前面即可)<br>  注:<ul>
+<li>实际上如果不加任何修饰, 编译器对全局变量的声明方式默认为extern, 因此上述extern均可省去(但为了程序的易读性, 应显式标明)</li>
+<li>const型的变量不适用上述方法, 需要特殊规则. 因为const型变量默认修饰符为static, 因此若需要把const 变量作为一个公有变量, 有两种方法:<ol>
+<li>在一个源文件内定义<code>extern const int PI = 3.141592653589793</code>, 在其他需要用到PI的源文件内声明<code>extern const int PI</code>; (类型必须对应一致, 否则当做这里的PI未定义)</li>
+<li>在一个头文件内定义<code>extern const int PI = 3.141592653589793</code>, 在其他源文件内包含这个头文件即可(这样相当于在每个源文件中分别定义一个const型的变量, 因此可以发现每个源文件中该const变量的地址是不同的, 但其值是永远一致的)</li>
+</ol>
+</li>
+</ul>
+</li>
+<li>不要将函数的定义和变量的声明放到头文件中, 头文件应包含的内容为:<br>  函数原型, 使用#define或const定义的符号常量, 结构声明, 类声明, 模板声明, 内联函数</li>
+<li>注意在全局变量不用const限定时, 链接性为外部的(其他文件可访问), 但是一旦用const限定之后, 其链接性就变成了内部的, 相当于加了static</li>
+</ul>
+<h2 id="内存模型"><a href="#内存模型" class="headerlink" title="内存模型"></a>内存模型</h2><ul>
+<li>C/C++内存段分配<ul>
+<li>.rodata段：存放只读数据，比如printf语句中的格式字符串和开关语句的跳转表。也就是你所说的常量区。<br>  例如，全局作用域中的 const int ival = 10，ival存放在.rodata段<br>  再如，函数局部作用域中的printf(“Hello world %d\n”, c);语句中的格式字符串”Hello world %d\n”，也存放在.rodata段</li>
+<li>.text段：存放已编译程序的机器代码。<br>注意：程序加载运行时，.rodata段和.text段通常合并到一个Segment（Text Segment）中，操作系统将这个Segment的页面只读保护起来，防止意外的改写。</li>
+<li>.data段：存放已初始化的全局变量。而局部变量在运行时保存在栈中，既不出现在.data段，也不出现在.bss段中。就是你所说的全局区。<br>  例如：全局作用域中的int ival = 10，static int a = 30，以及局部作用域中的static int b = 30，这3个变量均存放在.data段中。注意，局部作用域中的static变量的生命周期和其余栈变量的生命周期是不同的。</li>
+<li>.bss段：存放未初始化的全局变量。在目标文件中这个段不占据实际的空间，它仅仅是一个占位符，在加载时这个段用0填充。目标文件区分初始化和未初始化变量是为了空间效率：在目标文件中，未初始化变量不需要占据任何实际的磁盘空间。全局变量如果不初始化则初值为0，同理可以推断，static变量（不管是函数里的还是函数外的）如果不初始化则初值也是0，也分配在.bss段。<br>例如，全局作用域中的<code>int ival;</code><br>ival显然存放在.bss段<br>注意：.data和.bss在加载时合并到一个Segment（Data Segment）中，这个Segment是可读可写的。</li>
+<li>栈：函数的参数和局部变量是分配在栈上（但不包括static声明的变量）。在函数被调用时，栈用来传递参数和返回值。由于栈的先进先出特点，所以栈特别方便用来保存/恢复调用现场。</li>
+<li>堆：用于存放进程运行中被动态分配的内存段，它的大小并不固定，可动态扩张或缩减。当进程调用malloc/free等函数分配内存时，新分配的内存就被动态添加到堆上（堆被扩张）/释放的内存从堆中被剔除（堆被缩减）<br>注: <ol>
+<li>类的成员函数存放在代码段。</li>
+<li>在C++中，如果类中有虚函数，那么它就会有一个虚函数表的指针__vfptr，在类对象最开始的内存数据中。之后是类中的成员变量的内存数据。注意要考虑对齐。</li>
+</ol>
+</li>
+</ul>
+</li>
+<li>线程存储持续性(C++11) : 如果变量使用thread_local 声明, 则其生命周期和其所属线程的生命周期一样长</li>
+<li>静态存储持续性 : 用static关键字声明, 静态变量, 编译器将分配固定的内存块(堆)来存储所有的静态变量<br>  动态存储持续性 : 用new关键字分配的变量将一直存在(于堆中), 直到用delete释放</li>
+<li>存储说明符: auto(在C++11中不再是说明符, 被重定义为自动推断变量的类型), register, static, extern, thread_local, mutable</li>
+<li>cv限定符: <ul>
+<li>const</li>
+<li>volatile(表明程序代码没有对内存单元进行修改, 其值也可能发生变化)<br>例如, 将一个指针指向某个硬件位置, 其中包含了来自串行端口的时间或信息, 这样指针指向的那段内存就可能会被硬件修改(而不是程序本身). 如果不对该指针加volatile声明, 那么编译器可能在两次访问该变量时进行优化, 即不对该变量查找两次, 而是直接取前一次的值; 若加了volatile声明则编译器将不会进行这种优化</li>
+</ul>
+</li>
+<li>C语言三个分配内存的函数(都是在堆区申请内存)的区别:</li>
+</ul>
+<div class="table-container">
+<table>
+<thead>
+<tr>
+<th>函数</th>
+<th>特征</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>malloc(int total_size);</code></td>
+<td>常用, 分配完的内存需要自己初始化</td>
+</tr>
+<tr>
+<td><code>calloc(int array_size, int element_size);</code></td>
+<td>特点是分配完的空间都是经过初始化的，即全为0, 常用于分配数组</td>
+</tr>
+<tr>
+<td><code>realloc(void * ptr, int total_size);</code></td>
+<td>要求ptr必须为指向堆的指针, 即ptr必须为malloc或calloc申请的指针（若ptr指向内存区域的size小于参数total_size则重新分配一块新的内存, 并把原来ptr指向的内容拷贝到新的区域,否则不操作）。</td>
+</tr>
+</tbody>
+</table>
+</div>
+<ul>
+<li>使用<code>T * p = new(addr) T();</code> 用一个指针将类T实例化, 并在new运算符后添加一个地址参数, 则new会在所给的地址参数指向的内存区域为T分配内存. (当然p必须是足够大的而且未被使用的)</li>
+<li>申请内存时，指针所指向区块的大小这一信息，其实就记录在该指针的<strong>周围</strong></li>
+<li>如果一个指针申请内存时new/malloc了S个字节, 如ptr = new char[S];<br>  然而对第6个字节的位置进行了写操作, 如 ptr[5] = 0;<br>  则被视为未定义行为, 可能的表现有:<ul>
+<li>触发SIGTRAP中断(Dev cpp, MinGW 32bit)</li>
+<li>调用delete[] ptr后无返回, 即无限循环(MSVC)</li>
+<li>VS的输出日志显示CRT detected that the application wrote to memory after end of heap buffer.</li>
+</ul>
+</li>
+<li>delete关键字<ul>
+<li>delete ptr代表用来释放内存, 且只用来释放ptr指向的内存。</li>
+<li>delete[] rg用来释放rg指向的内存，还逐一调用数组中每个对象的destructor。<br>对于像int/char/long/int<em>/struct等等简单数据类型，由于对象没有destructor，所以用delete 和delete [] 是一样的。<br>但是如果是C++对象数组就不同, 用delete 删除 new[] 申请的对象, 虽然<em>*也会释放整个数组的内存</em></em>, 但是只会调用第一个对象的析构函数</li>
+</ul>
+</li>
+</ul>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/C/" rel="tag"># C++</a>
+          
+            <a href="/tags/Programming-Language/" rel="tag"># Programming Language</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/笔记/C-学习笔记-面向对象/" rel="prev" title="C++学习笔记-面向对象">
+                C++学习笔记-面向对象 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">Stardust</p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">17</span>
+                  <span class="site-state-item-name">posts</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                
+                  <span class="site-state-item-count">2</span>
+                  <span class="site-state-item-name">categories</span>
+                
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                
+                  <span class="site-state-item-count">29</span>
+                  <span class="site-state-item-name">tags</span>
+                
+              </div>
+            
+
+          </nav>
+
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#变量"><span class="nav-number">1.</span> <span class="nav-text">变量</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#函数"><span class="nav-number">2.</span> <span class="nav-text">函数</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#输入输出流"><span class="nav-number">3.</span> <span class="nav-text">输入输出流</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#编译链接"><span class="nav-number">4.</span> <span class="nav-text">编译链接</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#内存模型"><span class="nav-number">5.</span> <span class="nav-text">内存模型</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Stardust</span>
+
+  
+</div>
+
+
+  <div class="powered-by">Powered by <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a></div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">Theme &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Muse</a> v5.1.4</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+  
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+          processEscapes: true,
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+        }
+      });
+    </script>
+
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Queue(function() {
+        var all = MathJax.Hub.getAllJax(), i;
+        for (i=0; i < all.length; i += 1) {
+          all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+      });
+    </script>
+    <script type="text/javascript" src="//cdn.bootcss.com/mathjax/2.7.1/latest.js?config=TeX-AMS-MML_HTMLorMML"></script><!-- hexo-inject:begin --><!-- Begin: Injected MathJax -->
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config("");
+</script>
+
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for(i=0; i < all.length; i += 1) {
+      all[i].SourceElement().parentNode.className += ' has-jax';
+    }
+  });
+</script>
+
+<script type="text/javascript" src="//cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+<!-- End: Injected MathJax -->
+<!-- hexo-inject:end -->
+  
+
+
+  
+
+  
+
+</body>
+</html>

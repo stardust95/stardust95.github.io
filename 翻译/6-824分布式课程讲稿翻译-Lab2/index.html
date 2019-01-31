@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-CN">
+<head><meta name="generator" content="Hexo 3.8.0">
+  <!-- hexo-inject:begin --><!-- hexo-inject:end --><meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css">
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css">
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="Distributed System,MIT 6.824,">
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="任务: 实现Leader选举和心跳(即不包含日志的AppendEntries RPC). Part 2A的目标是让一个Leader能被选举出来, 并在没有宕机的情况下保持Leader身份, 在这个Leader宕机或这个Leader发送/接收的包丢失时让一个新的Leader接替它. 运行go test -run 2A来测试你2A部分的代码.  提示:  在raft.go文件的Raft结构体中添加你需">
+<meta name="keywords" content="Distributed System,MIT 6.824">
+<meta property="og:type" content="article">
+<meta property="og:title" content="6.824分布式课程讲稿翻译-Lab2">
+<meta property="og:url" content="https://stardust-blog.cn/翻译/6-824分布式课程讲稿翻译-Lab2/index.html">
+<meta property="og:site_name" content="Stardust&#39;s Blog">
+<meta property="og:description" content="任务: 实现Leader选举和心跳(即不包含日志的AppendEntries RPC). Part 2A的目标是让一个Leader能被选举出来, 并在没有宕机的情况下保持Leader身份, 在这个Leader宕机或这个Leader发送/接收的包丢失时让一个新的Leader接替它. 运行go test -run 2A来测试你2A部分的代码.  提示:  在raft.go文件的Raft结构体中添加你需">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2018-12-21T15:54:44.079Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="6.824分布式课程讲稿翻译-Lab2">
+<meta name="twitter:description" content="任务: 实现Leader选举和心跳(即不包含日志的AppendEntries RPC). Part 2A的目标是让一个Leader能被选举出来, 并在没有宕机的情况下保持Leader身份, 在这个Leader宕机或这个Leader发送/接收的包丢失时让一个新的Leader接替它. 运行go test -run 2A来测试你2A部分的代码.  提示:  在raft.go文件的Raft结构体中添加你需">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="https://stardust-blog.cn/翻译/6-824分布式课程讲稿翻译-Lab2/">
+
+
+
+
+
+  <title>6.824分布式课程讲稿翻译-Lab2 | Stardust's Blog</title><!-- hexo-inject:begin --><!-- hexo-inject:end -->
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope="" itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <!-- hexo-inject:begin --><!-- hexo-inject:end --><div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope="" itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Stardust's Blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">Live in thinking</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br>
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br>
+            
+            Archives
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://stardust-blog.cn/翻译/6-824分布式课程讲稿翻译-Lab2/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Stardust">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Stardust's Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">6.824分布式课程讲稿翻译-Lab2</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2018-01-10T19:07:11+08:00">
+                2018-01-10
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/翻译/" itemprop="url" rel="index">
+                    <span itemprop="name">翻译</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>任务: 实现Leader选举和心跳(即不包含日志的<code>AppendEntries</code> RPC). Part 2A的目标是让一个Leader能被选举出来, 并在没有宕机的情况下保持Leader身份, 在这个Leader宕机或这个Leader发送/接收的包丢失时让一个新的Leader接替它. 运行<code>go test -run 2A</code>来测试你2A部分的代码. </p>
+<p>提示:</p>
+<ul>
+<li>在<code>raft.go</code>文件的<code>Raft</code>结构体中添加你需要的任何状态. 你还需要定义一个结构体来保存每条日志的信息. 你的代码需要尽可能按照论文的图2来实现. </li>
+<li>Go RPC只会发送结构体中大写字母开头的字段. 子结构体同样也需要有首字母大写的字段名(例如表示日志记录数组的字段). 这些实验中最常出现的Bug就是来自忘记将字段名首字母大写. </li>
+<li>补充<code>RequestVoteArgs</code>和<code>RequestVoteReply</code>结构体. 修改<code>Make()</code>来创建一个后台Go线程, 用来在一段时间内没有接收到其他节点的消息时, 发送<code>RequestVote</code> RPC来周期性地开始一轮选举. 这样一个节点才能知道谁是Leader(当存在一个Leader的时候), 或让自己成为Leader. 实现处理<code>RequestVote()</code> RPC的方法, 以便服务器能互相投票. </li>
+<li>要实现心跳消息, 需要定义一个<code>AppendEntries</code> RPC结构体(虽然可能还不需要所有的参数), 并让Leader周期性地发送. 写一个处理<code>AppendEntries</code> RPC的函数, 这个函数需要重置选举超时时间以便当已经选出Leader后, 其他服务器不会进入Leader角色. </li>
+<li>确保不同的节点上选举超时不会同时发生, 否则所有的服务器都会为它们自己投票导致没有人能真正被选举出来. </li>
+<li>测试程序要求Leader每秒钟发送不超过10次的心跳RPC. </li>
+<li>测试程序要求你的Raft在旧的Leader宕机5秒之内选出一个新Leader(节点中的大多数仍可通信的情况下). 注意在选票被平分的情况下, Leader选举可能需要进行多轮(当网络包丢失, 或Candidate不幸地随机到了同样的超时时间时). 你需要选择足够短的选举超时时间(以及心跳间隔), 以便选举能够在5秒内完成, 即便需要多轮选举. </li>
+<li>论文的5.2节提到选举超时时间在150到300毫秒. 这个范围只在Leader每150毫秒发送一个心跳包的情况下才有意义. 因为测试程序限制你每秒只能发送10个心跳包, 因此你需要选择一个大于论文中的150到300毫秒的选举超时时间, 但不能太大, 因为太大了可能没法在5秒内选出一个Leader. </li>
+<li>你可能会用到Go提供的<a href="https://golang.org/pkg/time/#Sleep" target="_blank" rel="noopener"><code>time.Sleep()</code></a>和<a href="https://golang.org/pkg/math/rand/" target="_blank" rel="noopener"><code>rand</code></a>. </li>
+<li>你写的代码需要周期性地或是在一定延时后执行, 最简单的实现方式是写一个循环调用<a href="https://golang.org/pkg/time/#Sleep" target="_blank" rel="noopener"><code>time.Sleep()</code></a>的Go线程. </li>
+<li>如果你的代码无法通过测试, 请重读论文的图2; Leader选举完整的逻辑已经写在这个图中的各个部分了. </li>
+<li>调试你代码的一个好办法是在一个节点发送或接收消息时插入输出语句, 并用<code>go test -run 2A &gt; out</code>把输出都导出到一个文件中. 然后, 通过观察<code>out</code>文件中的消息, 你才能判断你的各处实现是否与预期效果一致. 你会发现<code>util.go</code>中的<code>DPrintf</code>方法在调试不同的问题时能用来调整输出. </li>
+<li>你需要用<code>go test -race</code>来检查你的代码, 并修复它报告的任何竞态条件. </li>
+</ul>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Distributed-System/" rel="tag"># Distributed System</a>
+          
+            <a href="/tags/MIT-6-824/" rel="tag"># MIT 6.824</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/笔记/Raft论文学习笔记/" rel="next" title="Raft论文学习笔记">
+                <i class="fa fa-chevron-left"></i> Raft论文学习笔记
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/笔记/Architectures-for-Controller-Based-CDP-论文学习笔记/" rel="prev" title="<基于存储控制器的CDP架构>论文学习笔记">
+                <基于存储控制器的cdp架构>论文学习笔记 <i class="fa fa-chevron-right"></i>
+              </基于存储控制器的cdp架构></a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+
+      <section class="site-overview-wrap sidebar-panel sidebar-panel-active">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">Stardust</p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">17</span>
+                  <span class="site-state-item-name">posts</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                
+                  <span class="site-state-item-count">2</span>
+                  <span class="site-state-item-name">categories</span>
+                
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                
+                  <span class="site-state-item-count">29</span>
+                  <span class="site-state-item-name">tags</span>
+                
+              </div>
+            
+
+          </nav>
+
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Stardust</span>
+
+  
+</div>
+
+
+  <div class="powered-by">Powered by <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a></div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">Theme &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Muse</a> v5.1.4</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+  
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+          processEscapes: true,
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+        }
+      });
+    </script>
+
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Queue(function() {
+        var all = MathJax.Hub.getAllJax(), i;
+        for (i=0; i < all.length; i += 1) {
+          all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+      });
+    </script>
+    <script type="text/javascript" src="//cdn.bootcss.com/mathjax/2.7.1/latest.js?config=TeX-AMS-MML_HTMLorMML"></script><!-- hexo-inject:begin --><!-- Begin: Injected MathJax -->
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config("");
+</script>
+
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for(i=0; i < all.length; i += 1) {
+      all[i].SourceElement().parentNode.className += ' has-jax';
+    }
+  });
+</script>
+
+<script type="text/javascript" src="//cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+<!-- End: Injected MathJax -->
+<!-- hexo-inject:end -->
+  
+
+
+  
+
+  
+
+</body>
+</html>
